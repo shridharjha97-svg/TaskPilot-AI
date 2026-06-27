@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  Lock, Mail, Eye, EyeOff, KeyRound, Fingerprint, ScanFace, 
+  Lock, Mail, Eye, EyeOff, KeyRound, 
   ArrowLeft, Github, Chrome, Compass, CheckCircle2, ShieldAlert, Sparkles 
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
@@ -20,8 +20,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack, onSuccess }) => {
   const [name, setName] = useState<string>('');
   const [otpMode, setOtpMode] = useState<boolean>(false);
   const [otpCode, setOtpCode] = useState<string[]>(['', '', '', '']);
-  const [bioScanning, setBioScanning] = useState<'fingerprint' | 'face' | null>(null);
-  const [bioSuccess, setBioSuccess] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
 
@@ -132,48 +130,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack, onSuccess }) => {
     }
   };
 
-  const triggerBioScan = (type: 'fingerprint' | 'face') => {
-    setBioScanning(type);
-    setBioSuccess(false);
-    setTimeout(async () => {
-      setBioSuccess(true);
-      try {
-        // Boostrap automatic biometric profile
-        await fetch('/api/auth/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: 'biometrics@lifesaver.ai',
-            password: 'biometrics-secure-hash-pass-1337',
-            name: 'Biometric Agent 🛡️'
-          })
-        }).then(r => r.json()).catch(() => null);
-
-        const loginRes = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: 'biometrics@lifesaver.ai',
-            password: 'biometrics-secure-hash-pass-1337'
-          })
-        }).then(r => r.json());
-
-        setTimeout(() => {
-          setBioScanning(null);
-          if (loginRes && loginRes.token) {
-            authSuccess(loginRes.token, loginRes.user);
-            if (onSuccess) onSuccess();
-          } else {
-            setError('Biometric registration issue. Please sign up manually.');
-          }
-        }, 1000);
-      } catch {
-        setBioScanning(null);
-        setError('Biometric link offline. Please sign in with keys.');
-      }
-    }, 2000);
-  };
-
   const handleOAuthLogin = async (provider: 'google' | 'github') => {
     setIsLoading(true);
     setError('');
@@ -246,38 +202,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack, onSuccess }) => {
       </button>
 
       <div className="w-full max-w-md rounded-3xl glass-panel border border-slate-200/60 dark:border-slate-800/60 shadow-2xl p-8 relative z-10 overflow-hidden">
-        {/* Bio Scan Overlay Animation */}
-        <AnimatePresence>
-          {bioScanning && (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-slate-950/95 flex flex-col items-center justify-center z-50 p-6 text-center"
-            >
-              <div className="relative flex items-center justify-center">
-                {bioScanning === 'fingerprint' ? (
-                  <Fingerprint className="w-24 h-24 text-indigo-500 animate-pulse" />
-                ) : (
-                  <ScanFace className="w-24 h-24 text-indigo-500 animate-pulse" />
-                )}
-                
-                {/* Circular scanner ring */}
-                {!bioSuccess && (
-                  <div className="absolute inset-0 border-4 border-dashed border-indigo-400 rounded-full animate-spin-slow scale-125"></div>
-                )}
-              </div>
-
-              <h4 className="text-xl font-bold mt-8 text-white">
-                {bioSuccess ? 'Biometrics Verified ✓' : `Scanning ${bioScanning === 'fingerprint' ? 'Touch ID' : 'Face ID'}...`}
-              </h4>
-              <p className="text-slate-400 text-sm mt-2 max-w-xs">
-                {bioSuccess ? 'Access authorized. Synchronizing dashboard...' : 'Place your finger on the sensor or center your face in the camera.'}
-              </p>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
         {/* Brand logo */}
         <div className="text-center mb-8">
           <div className="w-12 h-12 bg-gradient-to-tr from-indigo-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/20 mx-auto mb-4">
@@ -446,27 +370,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack, onSuccess }) => {
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-slate-200 dark:border-slate-800"></div>
           </div>
-          <span className="relative px-3 bg-slate-50 dark:bg-slate-950 text-slate-400 text-[10px] font-bold uppercase tracking-widest">or utilize bio-gates</span>
-        </div>
-
-        {/* Biometric Scan Shortcuts */}
-        <div className="grid grid-cols-2 gap-3">
-          <button
-            id="auth-fingerprint-btn"
-            onClick={() => triggerBioScan('fingerprint')}
-            className="flex items-center justify-center gap-2 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 transition-all cursor-pointer"
-          >
-            <Fingerprint className="w-4 h-4 text-indigo-500" />
-            <span>Touch ID</span>
-          </button>
-          <button
-            id="auth-faceid-btn"
-            onClick={() => triggerBioScan('face')}
-            className="flex items-center justify-center gap-2 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 transition-all cursor-pointer"
-          >
-            <ScanFace className="w-4 h-4 text-indigo-500" />
-            <span>Face ID</span>
-          </button>
+          <span className="relative px-3 bg-slate-50 dark:bg-slate-950 text-slate-400 text-[10px] font-bold uppercase tracking-widest">or sign in with</span>
         </div>
 
         {/* Third-Party Logins */}

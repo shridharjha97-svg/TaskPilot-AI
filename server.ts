@@ -8,6 +8,8 @@ import { GoogleGenAI, Type } from '@google/genai';
 const app = express();
 const PORT = 3000;
 
+app.set('trust proxy', true);
+
 app.use(cors());
 app.use(express.json());
 
@@ -260,9 +262,16 @@ app.post('/api/auth/reset-password', (req, res) => {
 // -----------------------------------------------------
 // GOOGLE & GITHUB OAUTH ENDPOINTS
 // -----------------------------------------------------
+const getOAuthRedirectUri = (req: express.Request, provider: 'google' | 'github') => {
+  const host = req.get('host') || '';
+  const isLocal = host.includes('localhost') || host.includes('127.0.0.1') || host.startsWith('3000-');
+  const protocol = isLocal ? 'http' : 'https';
+  return `${protocol}://${host}/auth/callback/${provider}`;
+};
+
 app.get('/api/auth/google/url', (req, res) => {
   const clientId = process.env.GOOGLE_CLIENT_ID;
-  const redirectUri = (req.query.redirect_uri as string) || `${req.protocol}://${req.get('host')}/auth/callback/google`;
+  const redirectUri = (req.query.redirect_uri as string) || getOAuthRedirectUri(req, 'google');
   
   if (!clientId || clientId === 'MY_GOOGLE_CLIENT_ID') {
     return res.json({ url: `/auth/callback/google?sandbox=true` });
@@ -276,7 +285,7 @@ app.get('/api/auth/google/url', (req, res) => {
 
 app.get('/api/auth/github/url', (req, res) => {
   const clientId = process.env.GITHUB_CLIENT_ID;
-  const redirectUri = (req.query.redirect_uri as string) || `${req.protocol}://${req.get('host')}/auth/callback/github`;
+  const redirectUri = (req.query.redirect_uri as string) || getOAuthRedirectUri(req, 'github');
 
   if (!clientId || clientId === 'MY_GITHUB_CLIENT_ID') {
     return res.json({ url: `/auth/callback/github?sandbox=true` });
@@ -430,7 +439,7 @@ app.get(['/auth/callback/google', '/auth/callback/google/'], async (req, res) =>
   // Real OAuth exchange flow
   try {
     const code = req.query.code;
-    const redirectUri = `${req.protocol}://${req.get('host')}/auth/callback/google`;
+    const redirectUri = getOAuthRedirectUri(req, 'google');
     
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
@@ -671,7 +680,7 @@ app.get(['/auth/callback/github', '/auth/callback/github/'], async (req, res) =>
   // Real OAuth exchange flow
   try {
     const code = req.query.code;
-    const redirectUri = `${req.protocol}://${req.get('host')}/auth/callback/github`;
+    const redirectUri = getOAuthRedirectUri(req, 'github');
 
     const tokenResponse = await fetch('https://github.com/login/oauth/access_token', {
       method: 'POST',
