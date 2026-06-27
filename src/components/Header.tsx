@@ -258,7 +258,6 @@ export const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
                       { id: 'focus-mode', label: 'Focus Soundroom', icon: Clock },
                       { id: 'goals', label: 'Milestone Roadmap', icon: Target },
                       { id: 'habit-tracker', label: 'Habit Rings & Streaks', icon: CalendarDays },
-                      { id: 'team', label: 'Team Space & Delegation', icon: Users2 },
                       { id: 'gamification', label: 'Quests & Achievements', icon: Trophy },
                       { id: 'settings', label: 'Platform Settings & Customization', icon: Settings },
                     ];

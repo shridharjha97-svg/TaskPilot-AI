@@ -11,7 +11,7 @@ import { CalendarView } from './components/CalendarView';
 import { AnalyticsView } from './components/AnalyticsView';
 import { FocusModeView } from './components/FocusModeView';
 import { 
-  GoalsView, HabitTrackerView, TeamWorkspaceView, 
+  GoalsView, HabitTrackerView, 
   GamificationView, SettingsView 
 } from './components/SecondaryViews';
 import { 
@@ -57,8 +57,6 @@ const AppContent: React.FC = () => {
         return <GoalsView />;
       case 'habit-tracker':
         return <HabitTrackerView />;
-      case 'team':
-        return <TeamWorkspaceView />;
       case 'gamification':
         return <GamificationView />;
       case 'settings':

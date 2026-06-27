@@ -37,7 +37,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose }) => {
     { id: 'focus-mode', label: 'Focus Soundroom', icon: Hourglass },
     { id: 'goals', label: 'Milestone Roadmap', icon: Target },
     { id: 'habit-tracker', label: 'Habit Rings', icon: CalendarDays },
-    { id: 'team', label: 'Team Space', icon: Users2 },
     { id: 'gamification', label: 'Quests & Achievements', icon: Trophy, badge: 'Win' },
     { id: 'settings', label: 'Platform Settings', icon: Settings },
   ];

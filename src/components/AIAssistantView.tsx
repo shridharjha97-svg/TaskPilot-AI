@@ -1,9 +1,73 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { 
-  Sparkles, Send, Mic, Volume2, ShieldAlert, Zap, 
+  Sparkles, Send, Volume2, ShieldAlert, Zap, 
   Trash2, Play, Calendar, ListChecks, Hourglass, Bot 
 } from 'lucide-react';
+
+interface TypewriterMessageProps {
+  text: string;
+  renderMessageText: (text: string, isAssistant: boolean) => React.ReactNode;
+  onType: () => void;
+}
+
+const TypewriterMessage: React.FC<TypewriterMessageProps> = ({ 
+  text, 
+  renderMessageText, 
+  onType 
+}) => {
+  const [displayedText, setDisplayedText] = useState<string>('');
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    setDisplayedText('');
+    let currentIdx = 0;
+    let lastScrollTime = 0;
+    
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+
+    const intervalSpeed = 8; // Faster, snappier interval
+    // Smooth dynamic pacing based on length
+    const charsPerStep = text.length > 500 ? 5 : text.length > 150 ? 2 : 1;
+
+    timerRef.current = setInterval(() => {
+      currentIdx += charsPerStep;
+      if (currentIdx >= text.length) {
+        setDisplayedText(text);
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+        }
+        onType(); // Final scroll
+      } else {
+        setDisplayedText(text.substring(0, currentIdx));
+        
+        // Throttle scrolling to every 120ms to prevent browser scroll-jumping layout jitter
+        const now = Date.now();
+        if (now - lastScrollTime > 120) {
+          onType();
+          lastScrollTime = now;
+        }
+      }
+    }, intervalSpeed);
+
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, [text]);
+
+  return (
+    <div className="relative">
+      {renderMessageText(displayedText, true)}
+      {displayedText.length < text.length && (
+        <span className="inline-block w-1.5 h-3 bg-indigo-500 ml-1 animate-pulse align-middle" />
+      )}
+    </div>
+  );
+};
 
 export const AIAssistantView: React.FC = () => {
   const { 
@@ -13,6 +77,14 @@ export const AIAssistantView: React.FC = () => {
 
   const [input, setInput] = useState<string>('');
   const chatBottomRef = useRef<HTMLDivElement>(null);
+  const lastMessageIdOnMountRef = useRef<string | null>(null);
+
+  // Set the initial last message ID so we don't re-type historical logs when switching tabs
+  useEffect(() => {
+    if (messages.length > 0 && !lastMessageIdOnMountRef.current) {
+      lastMessageIdOnMountRef.current = messages[messages.length - 1].id;
+    }
+  }, [messages]);
 
   // Auto scroll to latest messages
   useEffect(() => {
@@ -209,6 +281,9 @@ export const AIAssistantView: React.FC = () => {
       <div className="flex-1 p-6 overflow-y-auto space-y-6">
         {messages.map((m, idx) => {
           const isAssistant = m.sender === 'assistant';
+          const isLast = idx === messages.length - 1;
+          const isNew = !lastMessageIdOnMountRef.current || messages.findIndex(msg => msg.id === lastMessageIdOnMountRef.current) < idx;
+          const shouldAnimate = isAssistant && isLast && isNew;
           
           return (
             <div 
@@ -228,7 +303,17 @@ export const AIAssistantView: React.FC = () => {
                     : 'bg-indigo-600 text-white font-medium'
                 }`}>
                   {/* Format line breaks and markdown syntax correctly */}
-                  {renderMessageText(m.text, isAssistant)}
+                  {shouldAnimate ? (
+                    <TypewriterMessage 
+                      text={m.text} 
+                      renderMessageText={renderMessageText} 
+                      onType={() => {
+                        chatBottomRef.current?.scrollIntoView({ behavior: 'auto' });
+                      }}
+                    />
+                  ) : (
+                    renderMessageText(m.text, isAssistant)
+                  )}
                 </div>
 
                 {/* Render prompt suggestions if assistant */}
@@ -282,13 +367,6 @@ export const AIAssistantView: React.FC = () => {
           />
 
           <div className="flex items-center gap-1.5">
-            {/* Mock microphone */}
-            <button 
-              className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl transition-colors cursor-pointer"
-              title="Voice Notes"
-            >
-              <Mic className="w-4.5 h-4.5" />
-            </button>
             <button 
               onClick={handleSend}
               className={`p-2.5 text-white rounded-xl transition-all shadow-md cursor-pointer ${bgAccentClasses[accentColor]}`}
