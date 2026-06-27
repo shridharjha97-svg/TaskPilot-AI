@@ -1,0 +1,6 @@
+{
+  "name": "TaskPilot AI",
+  "description": "AI-powered hyper-productivity workspace designed to pilot tasks, manage workloads, and beat deadlines with intelligent automation, focus coaching, and gamified progress tracking.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
