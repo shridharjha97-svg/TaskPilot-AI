@@ -2,6 +2,7 @@ import React from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { LandingPage } from './components/LandingPage';
 import { AuthPage } from './components/AuthPage';
+import { FloatingAlerts } from './components/FloatingAlerts';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { DashboardView } from './components/DashboardView';
@@ -10,6 +11,7 @@ import { AIAssistantView } from './components/AIAssistantView';
 import { CalendarView } from './components/CalendarView';
 import { AnalyticsView } from './components/AnalyticsView';
 import { FocusModeView } from './components/FocusModeView';
+import { lofiSynth } from './utils/audio';
 import { 
   GoalsView, HabitTrackerView, 
   GamificationView, SettingsView 
@@ -20,8 +22,38 @@ import {
 } from 'lucide-react';
 
 const AppContent: React.FC = () => {
-  const { user, currentTab, setCurrentTab, showLanding, setShowLanding } = useApp();
+  const { 
+    user, 
+    currentTab, 
+    setCurrentTab, 
+    showLanding, 
+    setShowLanding,
+    twilightGlassSkinEnabled,
+    lofiTrackPlaying 
+  } = useApp();
   const [mobileSidebarOpen, setMobileSidebarOpen] = React.useState<boolean>(false);
+
+  React.useEffect(() => {
+    const handleHashChange = () => {
+      if (window.location.hash === '#gamification') {
+        setCurrentTab('gamification');
+      }
+    };
+    handleHashChange();
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, [setCurrentTab]);
+
+  React.useEffect(() => {
+    if (lofiTrackPlaying) {
+      lofiSynth.start();
+    } else {
+      lofiSynth.stop();
+    }
+    return () => {
+      lofiSynth.stop();
+    };
+  }, [lofiTrackPlaying]);
 
   // 1. If user wants to see the public landing presentation page
   if (showLanding && !user.isAuthenticated) {
@@ -75,19 +107,33 @@ const AppContent: React.FC = () => {
   ];
 
   return (
-    <div className="relative flex min-h-screen bg-slate-50 dark:bg-[#020203] text-slate-800 dark:text-slate-200 transition-colors duration-300 overflow-x-hidden">
+    <div className={`relative flex h-screen h-[100dvh] overflow-hidden text-slate-800 dark:text-slate-200 transition-colors duration-300 ${
+      twilightGlassSkinEnabled 
+        ? 'twilight-glass-skin-active bg-[#f6f5ff] dark:bg-[#06040d]' 
+        : 'bg-slate-50 dark:bg-[#020203]'
+    }`}>
       {/* Background Mesh Gradients */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-blue-600/10 dark:bg-blue-600/20 blur-[120px] pointer-events-none"></div>
-        <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full bg-purple-600/10 dark:bg-purple-600/20 blur-[120px] pointer-events-none"></div>
-        <div className="absolute top-[20%] right-[10%] w-[300px] h-[300px] rounded-full bg-orange-500/5 dark:bg-orange-500/10 blur-[100px] pointer-events-none"></div>
+        {twilightGlassSkinEnabled ? (
+          <>
+            <div className="absolute top-[-15%] left-[-15%] w-[600px] h-[600px] rounded-full bg-violet-600/25 dark:bg-violet-600/35 blur-[130px] pointer-events-none animate-pulse" style={{ animationDuration: '8s' }}></div>
+            <div className="absolute bottom-[-15%] right-[-15%] w-[600px] h-[600px] rounded-full bg-[#ec4899]/15 dark:bg-[#ec4899]/20 blur-[130px] pointer-events-none animate-pulse" style={{ animationDuration: '12s' }}></div>
+            <div className="absolute top-[30%] left-[30%] w-[400px] h-[400px] rounded-full bg-indigo-500/15 dark:bg-indigo-500/20 blur-[110px] pointer-events-none"></div>
+          </>
+        ) : (
+          <>
+            <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-blue-600/10 dark:bg-blue-600/20 blur-[120px] pointer-events-none"></div>
+            <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full bg-purple-600/10 dark:bg-purple-600/20 blur-[120px] pointer-events-none"></div>
+            <div className="absolute top-[20%] right-[10%] w-[300px] h-[300px] rounded-full bg-orange-500/5 dark:bg-orange-500/10 blur-[100px] pointer-events-none"></div>
+          </>
+        )}
       </div>
 
       {/* Sidebar - Collapsible sidebar for Tablet, Laptops and Desktop screen resolutions */}
       <Sidebar mobileOpen={mobileSidebarOpen} onClose={() => setMobileSidebarOpen(false)} />
 
       {/* Main Container Wrapper */}
-      <div className="relative z-10 flex-1 flex flex-col min-w-0 pb-20 md:pb-0">
+      <div className="relative z-10 flex-1 flex flex-col min-w-0 h-full overflow-hidden pb-20 md:pb-0">
         {/* Universal Header bar */}
         <Header onMenuToggle={() => setMobileSidebarOpen(true)} />
 
@@ -123,6 +169,7 @@ const AppContent: React.FC = () => {
           );
         })}
       </nav>
+      <FloatingAlerts />
     </div>
   );
 };

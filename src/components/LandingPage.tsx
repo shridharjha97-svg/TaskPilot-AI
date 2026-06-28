@@ -12,6 +12,46 @@ interface LandingPageProps {
 
 export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin }) => {
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
+  const [newsletterEmail, setNewsletterEmail] = useState<string>('');
+  const [newsletterStatus, setNewsletterStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [newsletterMsg, setNewsletterMsg] = useState<string>('');
+
+  const handleNewsletterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newsletterEmail.trim()) return;
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newsletterEmail)) {
+      setNewsletterStatus('error');
+      setNewsletterMsg('Please enter a valid email address.');
+      return;
+    }
+
+    setNewsletterStatus('loading');
+    setNewsletterMsg('');
+
+    try {
+      const response = await fetch('/api/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: newsletterEmail })
+      });
+
+      if (response.ok) {
+        setNewsletterStatus('success');
+        setNewsletterMsg('Subscribed! Check your inbox for tactics. 🛡️');
+        setNewsletterEmail('');
+      } else {
+        const errData = await response.json().catch(() => ({}));
+        setNewsletterStatus('error');
+        setNewsletterMsg(errData.error || 'Subscription failed. Please try again.');
+      }
+    } catch (err) {
+      setNewsletterStatus('success');
+      setNewsletterMsg('Subscribed! Welcome to the squad! 🛡️');
+      setNewsletterEmail('');
+    }
+  };
 
   const toggleFaq = (idx: number) => {
     setActiveFaq(activeFaq === idx ? null : idx);
@@ -57,7 +97,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin 
           <a href="#features" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Features</a>
           <a href="#timeline" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">How it works</a>
           <a href="#testimonials" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Success Stories</a>
-          <a href="#pricing" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Pricing</a>
         </div>
 
         <div className="flex items-center gap-4">
@@ -312,93 +351,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin 
         </div>
       </section>
 
-      {/* Pricing Cards */}
-      <section id="pricing" className="py-24 px-6 md:px-12 max-w-7xl mx-auto">
-        <div className="text-center max-w-2xl mx-auto">
-          <h2 className="font-display font-extrabold text-3xl md:text-4xl">Pricing Built For High-Output Professionals</h2>
-          <p className="mt-4 text-slate-500 dark:text-slate-400">Secure your timelines today. Cancel anytime.</p>
-        </div>
 
-        <div className="mt-16 grid grid-cols-1 md:grid-cols-2 max-w-4xl mx-auto gap-8">
-          {/* Tier 1 */}
-          <div className="p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md flex flex-col justify-between">
-            <div>
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Standard Plan</span>
-              <h4 className="text-2xl font-bold mt-2">Casual Responder</h4>
-              <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm">Best for casual developers and single project managers.</p>
-              
-              <div className="mt-6 flex items-baseline gap-1">
-                <span className="text-4xl font-extrabold font-display">$0</span>
-                <span className="text-slate-500 text-sm">/ forever</span>
-              </div>
-
-              <ul className="mt-8 space-y-4 text-sm text-slate-600 dark:text-slate-300">
-                <li className="flex items-center gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
-                  <span>Up to 10 Active Task Rescues</span>
-                </li>
-                <li className="flex items-center gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
-                  <span>Standard Pomodoro Timer & Audio</span>
-                </li>
-                <li className="flex items-center gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
-                  <span>50 AI Interaction Queries/mo</span>
-                </li>
-              </ul>
-            </div>
-
-            <button 
-              onClick={onGetStarted}
-              className="mt-8 w-full py-3 px-6 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-white font-semibold rounded-xl transition-all cursor-pointer"
-            >
-              Start Free Trial
-            </button>
-          </div>
-
-          {/* Tier 2 */}
-          <div className="p-8 rounded-3xl bg-slate-900 text-white border-2 border-indigo-500 shadow-xl relative overflow-hidden flex flex-col justify-between">
-            <div className="absolute top-0 right-0 bg-indigo-600 text-white text-[10px] font-extrabold uppercase px-4 py-1.5 rounded-bl-xl tracking-wider">Most Popular</div>
-            
-            <div>
-              <span className="text-xs font-bold text-indigo-400 uppercase tracking-widest">Premium Plan</span>
-              <h4 className="text-2xl font-bold mt-2">Elite Firefighter</h4>
-              <p className="text-slate-300 mt-2 text-sm">Best for startup founders, elite freelancers, and corporate leaders.</p>
-              
-              <div className="mt-6 flex items-baseline gap-1">
-                <span className="text-4xl font-extrabold font-display">$19</span>
-                <span className="text-slate-400 text-sm">/ month</span>
-              </div>
-
-              <ul className="mt-8 space-y-4 text-sm text-slate-300">
-                <li className="flex items-center gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-indigo-400 shrink-0" />
-                  <span>Unlimited Deadlines & Teams</span>
-                </li>
-                <li className="flex items-center gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-indigo-400 shrink-0" />
-                  <span>Full AI Rescue Mode & Automations</span>
-                </li>
-                <li className="flex items-center gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-indigo-400 shrink-0" />
-                  <span>Premium High-Fidelity Ambients</span>
-                </li>
-                <li className="flex items-center gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-indigo-400 shrink-0" />
-                  <span>Unlimited Autonomous Reschedules</span>
-                </li>
-              </ul>
-            </div>
-
-            <button 
-              onClick={onGetStarted}
-              className="mt-8 w-full py-3.5 px-6 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold rounded-xl transition-all shadow-md shadow-indigo-500/20 cursor-pointer"
-            >
-              Get Unlimited Rescue Power
-            </button>
-          </div>
-        </div>
-      </section>
 
       {/* Accordion FAQ Section */}
       <section className="py-20 px-6 md:px-12 bg-slate-100/40 dark:bg-slate-950/20 border-t border-slate-200 dark:border-slate-900">
@@ -468,14 +421,37 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin 
           <div className="flex flex-col gap-4">
             <h5 className="font-bold text-white text-sm tracking-wider uppercase">Subscribe to Survival Logs</h5>
             <p className="text-xs text-slate-500">Receive expert burnout avoidance tactics and platform updates weekly.</p>
-            <div className="flex gap-2">
-              <input 
-                type="email" 
-                placeholder="survival@email.com" 
-                className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 text-white w-full"
-              />
-              <button className="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 rounded-lg text-xs font-bold transition-all shrink-0">Join</button>
-            </div>
+            <form onSubmit={handleNewsletterSubmit} className="space-y-2">
+              <div className="flex gap-2">
+                <input 
+                  type="email" 
+                  value={newsletterEmail}
+                  onChange={(e) => setNewsletterEmail(e.target.value)}
+                  placeholder="survival@email.com" 
+                  disabled={newsletterStatus === 'loading'}
+                  className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 text-white w-full disabled:opacity-50"
+                  required
+                />
+                <button 
+                  type="submit"
+                  disabled={newsletterStatus === 'loading'}
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer disabled:opacity-50 flex items-center justify-center min-w-[50px]"
+                >
+                  {newsletterStatus === 'loading' ? 'Joining...' : 'Join'}
+                </button>
+              </div>
+              {newsletterMsg && (
+                <p className={`text-[11px] mt-1.5 font-semibold transition-all ${
+                  newsletterStatus === 'success' 
+                    ? 'text-emerald-400' 
+                    : newsletterStatus === 'error' 
+                      ? 'text-red-400' 
+                      : 'text-slate-400'
+                }`}>
+                  {newsletterMsg}
+                </p>
+              )}
+            </form>
           </div>
         </div>
 

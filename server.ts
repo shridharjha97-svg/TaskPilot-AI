@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import path from 'path';
+import fs from 'fs';
 import cors from 'cors';
 import { dbInstance, verifyToken, generateToken, Task, Habit, CalendarEvent, Goal, verifyPassword } from './server-db';
 import { GoogleGenAI, Type } from '@google/genai';
@@ -247,12 +248,74 @@ app.get('/api/auth/me', authenticateToken, (req, res) => {
   res.json({ user: user.stats });
 });
 
+app.post('/api/user/purchase', authenticateToken, (req, res) => {
+  const userId = (req as any).user.id;
+  const { itemTitle, price } = req.body;
+  if (!itemTitle || price === undefined) {
+    res.status(400).json({ error: 'Item title and price are required.' });
+    return;
+  }
+  const user = dbInstance.getUserById(userId);
+  if (!user) {
+    res.status(404).json({ error: 'User not found.' });
+    return;
+  }
+  if (user.stats.coins < price) {
+    res.status(400).json({ error: 'Insufficient coins.' });
+    return;
+  }
+  user.stats.coins -= price;
+  if (!user.stats.purchasedItems) {
+    user.stats.purchasedItems = [];
+  }
+  if (!user.stats.purchasedItems.includes(itemTitle)) {
+    user.stats.purchasedItems.push(itemTitle);
+  }
+  dbInstance.save();
+  
+  dbInstance.createNotification(userId, {
+    title: `Purchased ${itemTitle}!`,
+    message: `You spent ${price} LSC on ${itemTitle}. Your new aesthetic is ready to deploy!`,
+    type: 'success'
+  });
+
+  res.json({ success: true, coins: user.stats.coins, purchasedItems: user.stats.purchasedItems });
+});
+
 app.post('/api/auth/logout', (req, res) => {
   res.json({ success: true, message: 'Successfully logged out.' });
 });
 
 app.post('/api/auth/forgot-password', (req, res) => {
   res.json({ success: true, message: 'Magic rescue link sent to registered email.' });
+});
+
+app.post('/api/subscribe', (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    res.status(400).json({ error: 'Email is required.' });
+    return;
+  }
+  try {
+    const filePath = path.join(process.cwd(), 'subscribers.json');
+    let subscribers: string[] = [];
+    if (fs.existsSync(filePath)) {
+      const content = fs.readFileSync(filePath, 'utf8');
+      try {
+        subscribers = JSON.parse(content);
+      } catch (e) {
+        subscribers = [];
+      }
+    }
+    if (!subscribers.includes(email)) {
+      subscribers.push(email);
+      fs.writeFileSync(filePath, JSON.stringify(subscribers, null, 2), 'utf8');
+    }
+    res.json({ success: true, message: 'Successfully subscribed to Survival Logs!' });
+  } catch (err) {
+    console.error('Failed to save subscriber:', err);
+    res.status(500).json({ error: 'Failed to subscribe.' });
+  }
 });
 
 app.post('/api/auth/reset-password', (req, res) => {
@@ -263,6 +326,21 @@ app.post('/api/auth/reset-password', (req, res) => {
 // GOOGLE & GITHUB OAUTH ENDPOINTS
 // -----------------------------------------------------
 const getOAuthRedirectUri = (req: express.Request, provider: 'google' | 'github') => {
+  if (provider === 'google' && process.env.GOOGLE_REDIRECT_URI) {
+    return process.env.GOOGLE_REDIRECT_URI;
+  }
+  if (provider === 'github' && process.env.GITHUB_REDIRECT_URI) {
+    return process.env.GITHUB_REDIRECT_URI;
+  }
+  
+  if (process.env.APP_URL) {
+    const cleanAppUrl = process.env.APP_URL.replace(/\/$/, '');
+    return `${cleanAppUrl}/auth/callback/${provider}`;
+  }
+  if (process.env.REDIRECT_URI) {
+    return process.env.REDIRECT_URI;
+  }
+
   const host = req.get('host') || '';
   const isLocal = host.includes('localhost') || host.includes('127.0.0.1') || host.startsWith('3000-');
   const protocol = isLocal ? 'http' : 'https';

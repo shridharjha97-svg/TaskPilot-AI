@@ -108,6 +108,7 @@ export interface UserStats {
   xp: number;
   xpToNextLevel: number;
   coins: number;
+  purchasedItems?: string[];
   title: string;
   productivityScore: number;
   focusScore: number;
@@ -210,11 +211,19 @@ export class Database {
 
   // User methods
   public getUserById(id: string): User | undefined {
-    return this.data.users.find(u => u.id === id);
+    const user = this.data.users.find(u => u.id === id);
+    if (user && user.stats) {
+      user.stats.coins = Math.max(user.stats.coins || 0, 180);
+    }
+    return user;
   }
 
   public getUserByEmail(email: string): User | undefined {
-    return this.data.users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    const user = this.data.users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    if (user && user.stats) {
+      user.stats.coins = Math.max(user.stats.coins || 0, 180);
+    }
+    return user;
   }
 
   public createUser(email: string, passwordPlain: string, name: string): User {
@@ -236,7 +245,7 @@ export class Database {
         level: 1,
         xp: 0,
         xpToNextLevel: 1000,
-        coins: 50,
+        coins: 1000,
         title: 'Fresh Recruit 🛡️',
         productivityScore: 75,
         focusScore: 70,

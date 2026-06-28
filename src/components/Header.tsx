@@ -4,7 +4,8 @@ import { useApp } from '../context/AppContext';
 import { 
   Bell, Search, Clock, Sparkles, Coins, CheckCircle, 
   Settings, Zap, ShieldAlert, ArrowUpRight, Plus, HelpCircle,
-  ListTodo, Calendar, Trophy, Activity, MessageSquareCode, Target, CalendarDays, Users2, LogOut, User, Menu
+  ListTodo, Calendar, Trophy, Activity, MessageSquareCode, Target, CalendarDays, Users2, LogOut, User, Menu,
+  ChevronDown
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -519,49 +520,144 @@ export const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
           <button
             id="profile-dropdown-trigger"
             onClick={() => setShowProfileDropdown(!showProfileDropdown)}
-            className="relative focus:outline-none cursor-pointer flex items-center hover:opacity-90 active:scale-95 transition-all"
+            className={`relative focus:outline-none cursor-pointer flex items-center gap-2 p-1 rounded-xl border transition-all duration-300 ${
+              showProfileDropdown
+                ? 'bg-slate-100 dark:bg-slate-850 border-slate-300 dark:border-slate-700 shadow-sm'
+                : 'border-transparent hover:border-slate-200 dark:hover:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900/60'
+            }`}
           >
-            <img 
-              src={user.avatar} 
-              alt={user.name} 
-              className="w-8.5 h-8.5 rounded-xl object-cover border border-slate-200 dark:border-slate-800 select-none"
-            />
-            <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border border-white dark:border-slate-900 ${ringAccentClasses[accentColor]}`}></span>
+            <div className="relative shrink-0">
+              <img 
+                src={user.avatar} 
+                alt={user.name} 
+                className="w-8 h-8 rounded-lg object-cover select-none ring-2 ring-transparent transition-all"
+              />
+              <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border border-white dark:border-slate-900 ${ringAccentClasses[accentColor]}`}></span>
+            </div>
+            <div className="hidden sm:flex flex-col text-left max-w-[100px]">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-200 truncate">{user.name.split(' ')[0]}</span>
+              <span className="text-[9px] text-slate-400 dark:text-slate-500 font-medium truncate">{user.title.split(' ')[0]}</span>
+            </div>
+            <ChevronDown className={`w-3.5 h-3.5 text-slate-400 dark:text-slate-500 transition-transform duration-200 ${showProfileDropdown ? 'rotate-180' : ''}`} />
           </button>
 
           {showProfileDropdown && (
             <div 
               id="profile-dropdown-container"
               onClick={(e) => e.stopPropagation()}
-              className="absolute top-11 right-0 w-56 glass-panel rounded-2xl shadow-2xl p-3 z-40 overflow-hidden text-left"
+              className="absolute top-11 right-0 w-72 bg-white/95 dark:bg-slate-900/95 border border-slate-200/80 dark:border-slate-800/80 backdrop-blur-xl rounded-2xl shadow-2xl p-4 z-40 text-left animate-fade-in"
             >
-              <div className="px-2 py-1.5 pb-2 border-b border-slate-100 dark:border-slate-800">
-                <p className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">{user.name}</p>
-                <p className="text-[10px] text-slate-400 dark:text-slate-500 truncate mt-0.5">{user.email || 'alex@lifesaver.ai'}</p>
+              {/* User info head card */}
+              <div className="flex items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+                <img 
+                  src={user.avatar} 
+                  alt={user.name} 
+                  className="w-11 h-11 rounded-xl object-cover border border-slate-200 dark:border-slate-800 shrink-0"
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1">
+                    <p className="text-xs font-extrabold text-slate-800 dark:text-slate-100 truncate">{user.name}</p>
+                    <span className="shrink-0 bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 text-[8px] font-bold px-1.5 py-0.2 rounded font-mono">LVL {user.level}</span>
+                  </div>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 truncate">{user.email || 'alex@lifesaver.ai'}</p>
+                  <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 mt-0.5 inline-flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
+                    <span>{user.title}</span>
+                  </p>
+                </div>
               </div>
 
-              <div className="mt-1.5 space-y-0.5">
+              {/* Stats & Progress */}
+              <div className="py-3 border-b border-slate-100 dark:border-slate-800 space-y-2">
+                {/* XP Progress Bar */}
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[9px] font-bold">
+                    <span className="text-slate-400 uppercase tracking-wider">Experience Points (XP)</span>
+                    <span className="text-indigo-500">{user.xp} / {user.xpToNextLevel} XP</span>
+                  </div>
+                  <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-500"
+                      style={{ width: `${(user.xp / user.xpToNextLevel) * 100}%` }}
+                    ></div>
+                  </div>
+                </div>
+
+                {/* Micro Stats Grid */}
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <div className="p-2 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-100/60 dark:border-slate-800/40">
+                    <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider block">Productivity</span>
+                    <div className="flex items-baseline gap-1 mt-0.5">
+                      <span className="text-xs font-extrabold text-slate-800 dark:text-white">{user.productivityScore}%</span>
+                      <span className="text-[8px] font-semibold text-emerald-500">Peak</span>
+                    </div>
+                  </div>
+                  <div className="p-2 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-100/60 dark:border-slate-800/40">
+                    <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider block">Coin Balance</span>
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <Coins className="w-3 h-3 text-amber-500" />
+                      <span className="text-xs font-extrabold text-slate-800 dark:text-white">{user.coins}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Menu options */}
+              <div className="mt-2.5 space-y-1">
                 <button
                   onClick={() => {
                     setCurrentTab('settings');
                     setShowProfileDropdown(false);
                   }}
-                  className="w-full flex items-center gap-2 py-1.5 px-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-350 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all cursor-pointer text-left"
+                  className="w-full flex items-center justify-between py-2 px-2.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-350 hover:bg-slate-100/80 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer text-left"
                 >
-                  <User className="w-3.5 h-3.5 text-slate-450" />
-                  <span>Profile Settings</span>
+                  <div className="flex items-center gap-2">
+                    <User className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Workspace Settings</span>
+                  </div>
+                  <span className="text-[9px] bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-slate-400 font-mono">⌘S</span>
                 </button>
-                
+
                 <button
                   onClick={() => {
-                    logout();
+                    setCurrentTab('gamification');
                     setShowProfileDropdown(false);
                   }}
-                  className="w-full flex items-center gap-2 py-1.5 px-2 rounded-xl text-xs font-semibold text-rose-500 hover:bg-rose-500/10 transition-all cursor-pointer text-left"
+                  className="w-full flex items-center justify-between py-2 px-2.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-350 hover:bg-slate-100/80 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer text-left"
                 >
-                  <LogOut className="w-3.5 h-3.5" />
-                  <span>Disconnect / Logout</span>
+                  <div className="flex items-center gap-2">
+                    <Trophy className="w-3.5 h-3.5 text-amber-500" />
+                    <span>Achievements & Quests</span>
+                  </div>
+                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
                 </button>
+
+                <button
+                  onClick={() => {
+                    setCurrentTab('analytics');
+                    setShowProfileDropdown(false);
+                  }}
+                  className="w-full flex items-center justify-between py-2 px-2.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-350 hover:bg-slate-100/80 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer text-left"
+                >
+                  <div className="flex items-center gap-2">
+                    <Activity className="w-3.5 h-3.5 text-indigo-500" />
+                    <span>Productivity Insights</span>
+                  </div>
+                  <span className="text-[8px] px-1 py-0.2 bg-indigo-500/10 text-indigo-500 rounded font-bold uppercase">Live</span>
+                </button>
+                
+                <div className="pt-2 mt-1 border-t border-slate-100 dark:border-slate-800/60">
+                  <button
+                    onClick={() => {
+                      logout();
+                      setShowProfileDropdown(false);
+                    }}
+                    className="w-full flex items-center gap-2 py-2 px-2.5 rounded-xl text-xs font-bold text-rose-500 hover:bg-rose-500/10 transition-all cursor-pointer text-left"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    <span>Disconnect Session</span>
+                  </button>
+                </div>
               </div>
             </div>
           )}

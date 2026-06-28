@@ -1,0 +1,313 @@
+{
+  "users": [
+    {
+      "id": "user-ac201765-b780-43ce-a880-8753c260f336",
+      "email": "alex@lifesaver.ai",
+      "name": "Alex Johnson",
+      "passwordHash": "51a011ac496841a9f7991a8d97cae0f757a4143bf37179b8c45868cf62adb3efb836e0d7805ec4525c9394dba42ff0bf6c16189cc3cfb943b4b0ab43a0d51607",
+      "passwordSalt": "a8804e344c802b3527323787ec326671",
+      "stats": {
+        "name": "Alex Johnson",
+        "email": "alex@lifesaver.ai",
+        "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&h=150&q=80",
+        "level": 1,
+        "xp": 990,
+        "xpToNextLevel": 1000,
+        "coins": 1000,
+        "title": "Fresh Recruit 🛡️",
+        "productivityScore": 75,
+        "focusScore": 70,
+        "moodScore": 80,
+        "energyScore": 75,
+        "purchasedItems": [
+          "Lofi Cyber Ambient Track"
+        ]
+      }
+    }
+  ],
+  "tasks": [
+    {
+      "title": "Final Product Architecture & API Design",
+      "description": "Define exact REST API schemas, database schemas, and clean architecture diagram for the new launch.",
+      "priority": "urgent",
+      "status": "done",
+      "category": "work",
+      "dueDate": "2026-06-28T05:06:25.377Z",
+      "estimatedTime": 4.5,
+      "remainingTime": 2,
+      "riskMeter": 94,
+      "difficultyScore": 8,
+      "tag": "Rescue Priority",
+      "burnoutRisk": "high",
+      "subtasks": [
+        {
+          "id": "s-1",
+          "title": "Draft schema draft on Excalidraw",
+          "done": true
+        },
+        {
+          "id": "s-2",
+          "title": "Review endpoint patterns with Sarah",
+          "done": true
+        },
+        {
+          "id": "s-3",
+          "title": "Generate Typescript interface exports",
+          "done": false
+        },
+        {
+          "id": "s-4",
+          "title": "Set up database migration script",
+          "done": false
+        }
+      ],
+      "comments": [
+        {
+          "id": "co-1",
+          "author": "Nate",
+          "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&h=100&q=80",
+          "content": "This is super urgent Alex. The backend container deployment depends on this design.",
+          "timestamp": "1 hour ago"
+        }
+      ],
+      "collaborators": [
+        {
+          "id": "c-1",
+          "name": "Sarah",
+          "avatar": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&h=100&q=80",
+          "role": "UX Designer"
+        },
+        {
+          "id": "c-2",
+          "name": "Nate",
+          "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&h=100&q=80",
+          "role": "Dev Lead"
+        }
+      ],
+      "id": "task-56120f97-f46b-4832-8581-6d3ff0551368",
+      "userId": "user-ac201765-b780-43ce-a880-8753c260f336"
+    },
+    {
+      "title": "Venture Pitch Slide-Deck Refinement",
+      "description": "Polish visual slides, slide templates, market sizing numbers, and financial projections graph.",
+      "priority": "urgent",
+      "status": "done",
+      "category": "academic",
+      "dueDate": "2026-06-28T17:06:25.377Z",
+      "estimatedTime": 3,
+      "remainingTime": 14,
+      "riskMeter": 78,
+      "difficultyScore": 7,
+      "tag": "Pitch Deck",
+      "burnoutRisk": "medium",
+      "subtasks": [
+        {
+          "id": "s-5",
+          "title": "Confirm TAM & SAM estimates with finance",
+          "done": false
+        },
+        {
+          "id": "s-6",
+          "title": "Apply glassmorphism themes to PowerPoint",
+          "done": false
+        },
+        {
+          "id": "s-7",
+          "title": "Practice 5-minute presentation speech",
+          "done": false
+        }
+      ],
+      "comments": [],
+      "collaborators": [
+        {
+          "id": "c-3",
+          "name": "Maya",
+          "avatar": "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=100&h=100&q=80",
+          "role": "Product Manager"
+        }
+      ],
+      "id": "task-a34360e7-c1ba-4b1d-a123-198a272a37d3",
+      "userId": "user-ac201765-b780-43ce-a880-8753c260f336"
+    },
+    {
+      "title": "QA Automation Test Suite Configuration",
+      "description": "Set up automated tests for main authentication gates, checkout flows, and Stripe callback verification.",
+      "priority": "medium",
+      "status": "todo",
+      "category": "work",
+      "dueDate": "2026-07-01T03:06:25.377Z",
+      "estimatedTime": 8,
+      "remainingTime": 72,
+      "riskMeter": 24,
+      "difficultyScore": 5,
+      "tag": "QA Automate",
+      "burnoutRisk": "low",
+      "subtasks": [
+        {
+          "id": "s-8",
+          "title": "Install Playwright and setup config",
+          "done": true
+        },
+        {
+          "id": "s-9",
+          "title": "Write mock login specs",
+          "done": false
+        },
+        {
+          "id": "s-10",
+          "title": "Verify Github actions workflow integration",
+          "done": false
+        }
+      ],
+      "comments": [],
+      "collaborators": [],
+      "id": "task-ef17f5b8-d758-476c-844f-07178a13202d",
+      "userId": "user-ac201765-b780-43ce-a880-8753c260f336"
+    }
+  ],
+  "habits": [
+    {
+      "title": "Deep Work Session (45m)",
+      "streak": 6,
+      "totalCompleted": 25,
+      "history": [
+        "2026-06-22",
+        "2026-06-23",
+        "2026-06-24",
+        "2026-06-25",
+        "2026-06-26",
+        "2026-06-28"
+      ],
+      "targetWeekly": 5,
+      "currentWeekProgress": 6,
+      "category": "Focus",
+      "id": "habit-bcf65b74-618a-4b4c-ac0d-af7172a9dbb2",
+      "userId": "user-ac201765-b780-43ce-a880-8753c260f336"
+    },
+    {
+      "title": "Hydration Intake (3L)",
+      "streak": 13,
+      "totalCompleted": 46,
+      "history": [
+        "2026-06-20",
+        "2026-06-21",
+        "2026-06-22",
+        "2026-06-23",
+        "2026-06-24",
+        "2026-06-25",
+        "2026-06-26",
+        "2026-06-28"
+      ],
+      "targetWeekly": 7,
+      "currentWeekProgress": 8,
+      "category": "Health",
+      "id": "habit-1c3d903a-9c03-4649-804f-73c3c42ce8cc",
+      "userId": "user-ac201765-b780-43ce-a880-8753c260f336"
+    },
+    {
+      "title": "Stand & Stretch (Hourly)",
+      "streak": 1,
+      "totalCompleted": 11,
+      "history": [
+        "2026-06-28"
+      ],
+      "targetWeekly": 14,
+      "currentWeekProgress": 5,
+      "category": "Ergonomics",
+      "id": "habit-8dd7e533-0080-443c-bb83-fa85132252ca",
+      "userId": "user-ac201765-b780-43ce-a880-8753c260f336"
+    }
+  ],
+  "events": [
+    {
+      "title": "🚀 Launch Strategy Meeting",
+      "start": "10:00",
+      "end": "11:00",
+      "date": "2026-06-28",
+      "description": "Align with marketing on product packaging & digital asset delivery.",
+      "category": "meeting",
+      "isMeeting": true,
+      "meetingLink": "https://meet.google.com/abc-defg-hij",
+      "attendees": [
+        "Sarah",
+        "Nate",
+        "Alex Johnson"
+      ],
+      "id": "event-23426592-2424-49b1-abe8-3b867b1215e4",
+      "userId": "user-ac201765-b780-43ce-a880-8753c260f336"
+    },
+    {
+      "title": "🧠 Architecture Review Block",
+      "start": "13:00",
+      "end": "15:30",
+      "date": "2026-06-28",
+      "description": "Dedicated focus block to polish schema code design without Slack interruptions.",
+      "category": "work",
+      "id": "event-8bbd205f-7fb1-44b0-bdaf-ed3e3a16468c",
+      "userId": "user-ac201765-b780-43ce-a880-8753c260f336"
+    },
+    {
+      "title": "🎓 Pitch Presentation Practice",
+      "start": "16:00",
+      "end": "17:00",
+      "date": "2026-06-28",
+      "description": "Do a timed practice run with pitch coaches.",
+      "category": "academic",
+      "id": "event-7ab5075a-d905-4564-be79-25d1e6abb3ea",
+      "userId": "user-ac201765-b780-43ce-a880-8753c260f336"
+    },
+    {
+      "title": "dgdggg",
+      "start": "80;fgj",
+      "end": "11:dng00",
+      "date": "2026-06-21",
+      "description": "dggdg",
+      "category": "work",
+      "id": "event-a9cc4cf9-a179-444a-929a-b108d98fab8e",
+      "userId": "user-ac201765-b780-43ce-a880-8753c260f336"
+    }
+  ],
+  "goals": [
+    {
+      "title": "V2 Platform Launch Integration",
+      "targetDate": "2026-06-30",
+      "progress": 65,
+      "category": "Work",
+      "rewardXP": 1000,
+      "id": "goal-eec288a6-d3f8-4af9-a4e0-b941513ea913",
+      "userId": "user-ac201765-b780-43ce-a880-8753c260f336"
+    },
+    {
+      "title": "Venture Pitch Presentation",
+      "targetDate": "2026-06-28",
+      "progress": 40,
+      "category": "Academic",
+      "rewardXP": 1200,
+      "id": "goal-7dc61338-5c23-42b5-8bbb-4b4141640be0",
+      "userId": "user-ac201765-b780-43ce-a880-8753c260f336"
+    },
+    {
+      "title": "Consistent Gym Sprint",
+      "targetDate": "2026-07-05",
+      "progress": 15,
+      "category": "Personal",
+      "rewardXP": 500,
+      "id": "goal-3ed0e991-af1d-4acf-ad95-d4c5844349fd",
+      "userId": "user-ac201765-b780-43ce-a880-8753c260f336"
+    }
+  ],
+  "messages": [
+    {
+      "id": "msg-482bc30c-d615-4292-a984-6f66e808f9bb",
+      "sender": "assistant",
+      "text": "Clean terminal initiated. Let us plan your survival roadmap. What is blocking you right now?",
+      "suggestions": [
+        "🛡️ Activate Rescue Mode",
+        "📅 Plan my day"
+      ],
+      "timestamp": "04:44 AM",
+      "userId": "user-ac201765-b780-43ce-a880-8753c260f336"
+    }
+  ],
+  "notifications": []
+}

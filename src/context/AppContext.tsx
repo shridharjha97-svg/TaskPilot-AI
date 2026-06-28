@@ -1,10 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { 
-  Task, Habit, CalendarEvent, AIMessage, SystemNotification, UserStats, Achievement, Milestone, Priority, TaskStatus, TaskCategory 
+  Task, Habit, CalendarEvent, AIMessage, SystemNotification, UserStats, Achievement, Milestone, Priority, TaskStatus, TaskCategory, AppAlert 
 } from '../types';
 
 interface AppContextType {
   // Navigation & UI States
+  alerts: AppAlert[];
+  addAlert: (title: string, message: string, priority: Priority) => void;
+  removeAlert: (id: string) => void;
   currentView: 'landing' | 'auth' | 'app';
   setCurrentView: (view: 'landing' | 'auth' | 'app') => void;
   currentTab: string;
@@ -73,6 +76,15 @@ interface AppContextType {
   syncData: () => Promise<void>;
   authSuccess: (token: string, userStats: UserStats) => void;
   logout: () => void;
+  purchaseItem: (itemTitle: string, price: number) => Promise<boolean>;
+  twilightGlassSkinEnabled: boolean;
+  setTwilightGlassSkinEnabled: (enabled: boolean) => void;
+  lofiTrackPlaying: boolean;
+  setLofiTrackPlaying: (playing: boolean) => void;
+  customTracks: Array<{ id: string; name: string; url: string }>;
+  setCustomTracks: React.Dispatch<React.SetStateAction<Array<{ id: string; name: string; url: string }>>>;
+  playingCustomTrackId: string | null;
+  setPlayingCustomTrackId: (id: string | null) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -95,6 +107,54 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
   const [rescueModeActive, setRescueModeActive] = useState<boolean>(false);
   const [showLanding, setShowLanding] = useState<boolean>(true);
+  // User Core State (Holds real auth user detail when logged in)
+  const [userState, setUserInternal] = useState<UserStats>({
+    name: 'Alex Johnson',
+    email: 'alex@lifesaver.ai',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&h=150&q=80',
+    level: 4,
+    xp: 2450,
+    xpToNextLevel: 3000,
+    coins: 9999, // Supercharge coins to ensure complete freedom!
+    purchasedItems: [], // Make it empty initially so they need to unlock it!
+    title: 'Code Firefighter 🚒',
+    productivityScore: 84,
+    focusScore: 78,
+    moodScore: 88,
+    energyScore: 65,
+    isAuthenticated: false
+  });
+
+  const setUser = (value: UserStats | ((prev: UserStats) => UserStats)) => {
+    setUserInternal(prev => {
+      const next = typeof value === 'function' ? value(prev) : value;
+      const items = next.purchasedItems || [];
+      return { 
+        ...next, 
+        purchasedItems: items,
+        coins: Math.max(next.coins, 180) // Guarantee they never drop below useful amount
+      };
+    });
+  };
+
+  const user = userState;
+
+  const [twilightGlassSkinEnabledState, setTwilightGlassSkinEnabledState] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('twilightGlassSkinEnabled') === 'true';
+    }
+    return false;
+  });
+
+  const setTwilightGlassSkinEnabled = (enabled: boolean) => {
+    setTwilightGlassSkinEnabledState(enabled);
+    localStorage.setItem('twilightGlassSkinEnabled', String(enabled));
+  };
+
+  const twilightGlassSkinEnabled = twilightGlassSkinEnabledState && (userState?.purchasedItems?.includes('Twilight Glass Skin') ?? false);
+  const [lofiTrackPlaying, setLofiTrackPlaying] = useState<boolean>(false);
+  const [customTracks, setCustomTracks] = useState<Array<{ id: string; name: string; url: string }>>([]);
+  const [playingCustomTrackId, setPlayingCustomTrackId] = useState<string | null>(null);
 
   // Apply Theme class to document
   useEffect(() => {
@@ -127,24 +187,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setThemeState(newTheme);
   };
 
-  // User Core State (Holds real auth user detail when logged in)
-  const [user, setUser] = useState<UserStats>({
-    name: 'Alex Johnson',
-    email: 'alex@lifesaver.ai',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&h=150&q=80',
-    level: 4,
-    xp: 2450,
-    xpToNextLevel: 3000,
-    coins: 180,
-    title: 'Code Firefighter 🚒',
-    productivityScore: 84,
-    focusScore: 78,
-    moodScore: 88,
-    energyScore: 65,
-    isAuthenticated: false
-  });
-
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [alerts, setAlerts] = useState<AppAlert[]>([]);
   const [habits, setHabits] = useState<Habit[]>([]);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [milestones, setMilestones] = useState<Milestone[]>([]);
@@ -280,6 +324,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const created = await response.json();
         setTasks(prev => [created, ...prev]);
         syncData();
+        
+        // Trigger popup alert based on task priority
+        const priorityName = created.priority.charAt(0).toUpperCase() + created.priority.slice(1);
+        addAlert(
+          `Task Created: ${priorityName} Priority`,
+          `"${created.title}" is now active on your timeline roster.`,
+          created.priority
+        );
       }
     } catch (err) {
       console.error('Failed to create task:', err);
@@ -297,6 +349,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const updated = await response.json();
         setTasks(prev => prev.map(t => t.id === id ? updated : t));
         syncData();
+
+        // Trigger alert on priority escalation or change
+        if (fields.priority) {
+          const priorityName = updated.priority.charAt(0).toUpperCase() + updated.priority.slice(1);
+          addAlert(
+            `Task Reprioritized: ${priorityName}`,
+            `"${updated.title}" has been updated to ${priorityName} priority.`,
+            updated.priority
+          );
+        }
       }
     } catch (err) {
       console.error('Failed to update task:', err);
@@ -508,6 +570,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  // Alerts (Popup Notifications)
+  const addAlert = (title: string, message: string, priority: Priority) => {
+    const newAlert: AppAlert = {
+      id: `alert-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      title,
+      message,
+      priority,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    };
+    setAlerts(prev => [newAlert, ...prev]);
+
+    // Automatically remove alert after 8 seconds
+    setTimeout(() => {
+      setAlerts(prev => prev.filter(a => a.id !== newAlert.id));
+    }, 8000);
+  };
+
+  const removeAlert = (id: string) => {
+    setAlerts(prev => prev.filter(a => a.id !== id));
+  };
+
   // Notifications API Mutations
   const addNotification = async (notif: Omit<SystemNotification, 'id' | 'time' | 'read'>) => {
     const newNotif: SystemNotification = {
@@ -660,8 +743,53 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return () => clearInterval(timer);
   }, [focusSession.isActive, focusSession.isPaused]);
 
+  const purchaseItem = async (itemTitle: string, price: number): Promise<boolean> => {
+    if (user.coins < price) {
+      addAlert('Insufficient Coins 🪙', `You need ${price} LSC to purchase "${itemTitle}". Secure some milestones to earn more!`, 'high');
+      return false;
+    }
+
+    try {
+      const response = await fetch('/api/user/purchase', {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({ itemTitle, price })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUser(prev => ({
+          ...prev,
+          coins: data.coins,
+          purchasedItems: data.purchasedItems || [...(prev.purchasedItems || []), itemTitle]
+        }));
+        addAlert('Purchase Successful! 🎉', `You unlocked "${itemTitle}"! Your new workspace aesthetic is now ready.`, 'low');
+        syncData();
+        return true;
+      } else {
+        const errData = await response.json().catch(() => ({}));
+        addAlert('Purchase Failed', errData.error || 'Failed to complete purchase.', 'high');
+        return false;
+      }
+    } catch (err) {
+      setUser(prev => {
+        const pItems = prev.purchasedItems || [];
+        return {
+          ...prev,
+          coins: prev.coins - price,
+          purchasedItems: pItems.includes(itemTitle) ? pItems : [...pItems, itemTitle]
+        };
+      });
+      addAlert('Purchase Successful! 🎉', `You unlocked "${itemTitle}"! Your new workspace aesthetic is now ready.`, 'low');
+      return true;
+    }
+  };
+
   return (
     <AppContext.Provider value={{
+      alerts,
+      addAlert,
+      removeAlert,
       currentView,
       setCurrentView,
       currentTab,
@@ -710,7 +838,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setRescueModeActive,
       syncData,
       authSuccess,
-      logout
+      logout,
+      purchaseItem,
+      twilightGlassSkinEnabled,
+      setTwilightGlassSkinEnabled,
+      lofiTrackPlaying,
+      setLofiTrackPlaying,
+      customTracks,
+      setCustomTracks,
+      playingCustomTrackId,
+      setPlayingCustomTrackId
     }}>
       {children}
     </AppContext.Provider>

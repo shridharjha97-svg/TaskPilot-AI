@@ -102,6 +102,7 @@ export interface UserStats {
   xp: number;
   xpToNextLevel: number;
   coins: number;
+  purchasedItems?: string[];
   title: string;
   productivityScore: number;
   focusScore: number;
@@ -118,3 +119,12 @@ export interface Achievement {
   isUnlocked: boolean;
   unlockedAt?: string;
 }
+
+export interface AppAlert {
+  id: string;
+  title: string;
+  message: string;
+  priority: Priority;
+  time: string;
+}
+

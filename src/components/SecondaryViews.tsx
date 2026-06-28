@@ -322,7 +322,7 @@ export const TeamWorkspaceView: React.FC = () => {
 // 4. GAMIFICATION CENTER & REWARDS
 // ==========================================
 export const GamificationView: React.FC = () => {
-  const { user, achievements, unlockAchievement, accentColor } = useApp();
+  const { user, achievements, unlockAchievement, accentColor, purchaseItem } = useApp();
 
   const missions = [
     { title: 'Beat an urgent 2-hour priority deadline', reward: '250 XP • 50 Coins', done: true },
@@ -428,7 +428,8 @@ export const GamificationView: React.FC = () => {
                   <p className="text-[10px] text-slate-400 mt-1">{item.desc}</p>
                 </div>
                 <button
-                  className="self-end py-1 px-3.5 bg-slate-200 dark:bg-slate-850 hover:bg-slate-300 dark:hover:bg-slate-800 text-[10px] font-extrabold text-slate-700 dark:text-slate-300 rounded-xl flex items-center gap-1 cursor-pointer"
+                  onClick={() => purchaseItem(item.title, item.price)}
+                  className="self-end py-1.5 px-3.5 bg-indigo-50 dark:bg-slate-800 hover:bg-indigo-100 dark:hover:bg-slate-700 text-[10px] font-extrabold text-indigo-700 dark:text-slate-200 rounded-xl flex items-center gap-1 cursor-pointer transition-all active:scale-95 shadow-sm"
                 >
                   <span>{item.price} LSC</span>
                   <Coins className="w-3 h-3 text-amber-500" />
@@ -450,7 +451,14 @@ export const GamificationView: React.FC = () => {
 // 5. SETTINGS PANEL
 // ==========================================
 export const SettingsView: React.FC = () => {
-  const { theme, setTheme, accentColor, setAccentColor, user } = useApp();
+  const { 
+    theme, setTheme, accentColor, setAccentColor, user,
+    twilightGlassSkinEnabled, setTwilightGlassSkinEnabled,
+    lofiTrackPlaying, setLofiTrackPlaying
+  } = useApp();
+
+  const hasGlassSkin = user?.purchasedItems?.includes('Twilight Glass Skin');
+  const hasLofiTrack = user?.purchasedItems?.includes('Lofi Cyber Ambient Track');
 
   const colors: Array<'indigo' | 'emerald' | 'amber' | 'rose' | 'violet'> = [
     'indigo', 'emerald', 'amber', 'rose', 'violet'
@@ -511,7 +519,7 @@ export const SettingsView: React.FC = () => {
         </div>
 
         {/* Accent Color switcher */}
-        <div className="flex flex-col gap-2.5 text-xs font-semibold">
+        <div className="flex flex-col gap-2.5 text-xs font-semibold pb-4">
           <div>
             <span>Visual Accent Tone</span>
             <p className="text-[10px] text-slate-400 font-normal mt-0.5">Applies custom gradient lighting systems across workspace cards.</p>
@@ -542,6 +550,73 @@ export const SettingsView: React.FC = () => {
               );
             })}
           </div>
+        </div>
+
+        {/* Premium Twilight Glass Skin Activation */}
+        <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80 flex justify-between items-center text-xs font-semibold">
+          <div>
+            <div className="flex items-center gap-1.5">
+              <span className="font-bold">Premium Twilight Glass Skin</span>
+              {hasGlassSkin && (
+                <span className="bg-indigo-500/10 text-indigo-500 text-[8px] font-mono font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-full border border-indigo-500/20">Unlocked</span>
+              )}
+            </div>
+            <p className="text-[10px] text-slate-400 font-normal mt-0.5">Activate a stunning glassmorphism dashboard overlay styled with deep cosmic purple accents.</p>
+          </div>
+
+          {hasGlassSkin ? (
+            <button
+              onClick={() => setTwilightGlassSkinEnabled(!twilightGlassSkinEnabled)}
+              className={`py-1.5 px-4 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer transition-all active:scale-95 ${
+                twilightGlassSkinEnabled 
+                  ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg shadow-indigo-500/25 border-none' 
+                  : 'bg-slate-100 dark:bg-slate-950 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-900 border border-slate-200 dark:border-slate-800'
+              }`}
+            >
+              <span>{twilightGlassSkinEnabled ? 'Active ✓' : 'Equip'}</span>
+            </button>
+          ) : (
+            <span className="text-[10px] text-slate-400 italic bg-slate-50 dark:bg-slate-950 px-3 py-1.5 rounded-xl border border-dashed border-slate-200 dark:border-slate-850">
+              🔒 Locked (Purchase in Coin Shop)
+            </span>
+          )}
+        </div>
+
+        {/* Premium Lofi Cyber Ambient Track Player */}
+        <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80 flex justify-between items-center text-xs font-semibold">
+          <div>
+            <div className="flex items-center gap-1.5">
+              <span className="font-bold">Lofi Cyber Ambient Track</span>
+              {hasLofiTrack && (
+                <span className="bg-emerald-500/10 text-emerald-500 text-[8px] font-mono font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-full border border-emerald-500/20">Unlocked</span>
+              )}
+            </div>
+            <p className="text-[10px] text-slate-400 font-normal mt-0.5">Generates real-time custom deep bass lofi focus notes and soft cyber soundscapes offline.</p>
+          </div>
+
+          {hasLofiTrack ? (
+            <button
+              onClick={() => setLofiTrackPlaying(!lofiTrackPlaying)}
+              className={`py-1.5 px-4 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer transition-all active:scale-95 ${
+                lofiTrackPlaying 
+                  ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/25 border-none' 
+                  : 'bg-slate-100 dark:bg-slate-950 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-900 border border-slate-200 dark:border-slate-800'
+              }`}
+            >
+              {lofiTrackPlaying ? (
+                <div className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 bg-white rounded-full animate-ping"></span>
+                  <span>Playing ♫</span>
+                </div>
+              ) : (
+                <span>Play synth</span>
+              )}
+            </button>
+          ) : (
+            <span className="text-[10px] text-slate-400 italic bg-slate-50 dark:bg-slate-950 px-3 py-1.5 rounded-xl border border-dashed border-slate-200 dark:border-slate-850">
+              🔒 Locked (Purchase in Coin Shop)
+            </span>
+          )}
         </div>
       </div>
 

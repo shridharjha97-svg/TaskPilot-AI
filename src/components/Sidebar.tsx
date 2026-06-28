@@ -31,13 +31,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose }) => {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'tasks', label: 'Smart Tasks', icon: ListTodo, badge: 'Hot' },
+    { id: 'gamification', label: 'Rewards / Gamification', icon: Trophy, badge: 'Win' },
     { id: 'ai-assistant', label: 'AI Assistant', icon: MessageSquareCode, glow: true },
     { id: 'calendar', label: 'Calendar Planner', icon: Calendar },
     { id: 'analytics', label: 'Analytics & Insights', icon: BarChart3 },
     { id: 'focus-mode', label: 'Focus Soundroom', icon: Hourglass },
     { id: 'goals', label: 'Milestone Roadmap', icon: Target },
     { id: 'habit-tracker', label: 'Habit Rings', icon: CalendarDays },
-    { id: 'gamification', label: 'Quests & Achievements', icon: Trophy, badge: 'Win' },
     { id: 'settings', label: 'Platform Settings', icon: Settings },
   ];
 
@@ -69,11 +69,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose }) => {
       )}
 
       <aside 
-        className={`fixed md:sticky top-0 bottom-0 left-0 h-screen border-r border-slate-200/60 dark:border-slate-800/60 glass-panel-heavy flex flex-col justify-between transition-all duration-300 z-50 shrink-0 ${
+        className={`fixed md:sticky md:self-start top-0 bottom-0 left-0 h-full md:h-screen h-[100dvh] border-r border-slate-200/60 dark:border-slate-800/60 glass-panel-heavy flex flex-col justify-between transition-all duration-300 z-50 shrink-0 ${
           mobileOpen 
-            ? 'translate-x-0 w-80 flex' 
+            ? 'translate-x-0 w-72 sm:w-80 flex' 
             : 'hidden md:flex -translate-x-full md:translate-x-0'
-        } ${isCollapsed ? 'md:w-20' : 'md:w-80'}`}
+        } ${isCollapsed ? 'md:w-20' : 'md:w-64 lg:w-72 xl:w-80'}`}
       >
         {/* Collapse Action Button - Desktop Only */}
         <button
@@ -86,7 +86,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose }) => {
 
         <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
           {/* Header Branding */}
-          <div className={`p-6 flex items-center justify-between shrink-0 ${isCollapsed ? 'md:justify-center' : ''}`}>
+          <div className={`py-4 px-5 flex items-center justify-between shrink-0 ${isCollapsed ? 'md:justify-center' : ''}`}>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-gradient-to-tr from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20 shrink-0">
                 <ShieldAlert className="w-5 h-5 text-white animate-pulse" />
@@ -113,11 +113,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose }) => {
           </div>
 
         {/* Workspace Switcher */}
-        <div className="px-4 mb-4 relative shrink-0">
+        <div className="px-4 mb-3 relative shrink-0">
           <button
             id="workspace-switcher-btn"
             onClick={() => setShowWorkspaceMenu(!showWorkspaceMenu)}
-            className={`w-full py-2 px-3 rounded-xl bg-white/10 dark:bg-white/5 border border-slate-200/40 dark:border-white/10 flex items-center justify-between text-slate-700 dark:text-slate-300 hover:bg-white/20 dark:hover:bg-white/10 transition-all ${
+            className={`w-full py-1.5 px-3 rounded-xl bg-white/10 dark:bg-white/5 border border-slate-200/40 dark:border-white/10 flex items-center justify-between text-slate-700 dark:text-slate-300 hover:bg-white/20 dark:hover:bg-white/10 transition-all ${
               isCollapsed ? 'p-2 justify-center' : ''
             }`}
           >
@@ -156,11 +156,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose }) => {
         </div>
 
         {/* Emergency Deadline Rescue Button */}
-        <div className="px-4 mb-6 shrink-0">
+        <div className="px-4 mb-4 shrink-0">
           <button
             id="emergency-rescue-toggle"
             onClick={() => setRescueModeActive(!rescueModeActive)}
-            className={`w-full py-3 px-4 rounded-xl flex items-center gap-3 font-semibold transition-all relative overflow-hidden group cursor-pointer ${
+            className={`w-full py-2.5 px-4 rounded-xl flex items-center gap-3 font-semibold transition-all relative overflow-hidden group cursor-pointer ${
               rescueModeActive 
                 ? 'bg-gradient-to-r from-red-600 to-orange-600 text-white shadow-lg shadow-red-500/20' 
                 : 'bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 hover:bg-red-500/15'
@@ -179,7 +179,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose }) => {
         </div>
 
         {/* View Selection List */}
-        <nav className="space-y-1.5 px-2 pb-6">
+        <nav className="space-y-1 px-2 pb-4">
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentTab === item.id;
@@ -190,13 +190,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose }) => {
                 id={`sidebar-tab-${item.id}`}
                 onClick={() => {
                   setCurrentTab(item.id);
+                  if (item.id === 'gamification') {
+                    window.location.hash = 'gamification';
+                  } else if (window.location.hash === '#gamification') {
+                    window.location.hash = '';
+                  }
                   if (onClose) onClose();
                 }}
-                className={`w-full flex items-center justify-between py-2.5 px-4 rounded-xl text-sm font-semibold transition-all relative group cursor-pointer ${
+                className={`w-full flex items-center justify-between py-2 px-3 rounded-xl text-sm font-semibold transition-all relative group cursor-pointer ${
                   isActive 
                     ? accentClasses[accentColor] 
                     : 'text-slate-500 hover:bg-slate-100/50 dark:hover:bg-slate-900/40 hover:text-slate-900 dark:hover:text-slate-100'
-                } ${isCollapsed ? 'md:justify-center md:p-2.5' : ''}`}
+                } ${isCollapsed ? 'md:justify-center md:p-2' : ''}`}
               >
                 <div className="flex items-center gap-3">
                   <div className="relative">
