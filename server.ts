@@ -14,6 +14,54 @@ app.set('trust proxy', true);
 app.use(cors());
 app.use(express.json());
 
+// ==========================================
+// EXPLICIT ROOT-LEVEL OAUTH CALLBACK BINDINGS
+// Registered first to prevent any routing or static-file conflicts
+// ==========================================
+app.use((req, res, next) => {
+  const normPath = req.path.replace(/\/$/, '').toLowerCase();
+  if (
+    normPath === '/api/auth/google/callback' || 
+    normPath === '/auth/callback/google' || 
+    normPath === '/api/auth/callback/google'
+  ) {
+    return handleGoogleCallback(req, res);
+  }
+  if (
+    normPath === '/api/auth/github/callback' || 
+    normPath === '/auth/callback/github' || 
+    normPath === '/api/auth/callback/github'
+  ) {
+    return handleGithubCallback(req, res);
+  }
+  next();
+});
+
+// Primary /api/auth/:provider/callback routes
+app.get('/api/auth/google/callback', handleGoogleCallback);
+app.post('/api/auth/google/callback', handleGoogleCallback);
+app.get('/api/auth/github/callback', handleGithubCallback);
+app.post('/api/auth/github/callback', handleGithubCallback);
+
+// Legacy/Alternative fallback paths
+app.get('/auth/callback/google', handleGoogleCallback);
+app.post('/auth/callback/google', handleGoogleCallback);
+app.get('/auth/callback/google/', handleGoogleCallback);
+app.post('/auth/callback/google/', handleGoogleCallback);
+app.get('/api/auth/callback/google', handleGoogleCallback);
+app.post('/api/auth/callback/google', handleGoogleCallback);
+app.get('/api/auth/callback/google/', handleGoogleCallback);
+app.post('/api/auth/callback/google/', handleGoogleCallback);
+
+app.get('/auth/callback/github', handleGithubCallback);
+app.post('/auth/callback/github', handleGithubCallback);
+app.get('/auth/callback/github/', handleGithubCallback);
+app.post('/auth/callback/github/', handleGithubCallback);
+app.get('/api/auth/callback/github', handleGithubCallback);
+app.post('/api/auth/callback/github', handleGithubCallback);
+app.get('/api/auth/callback/github/', handleGithubCallback);
+app.post('/api/auth/callback/github/', handleGithubCallback);
+
 // Initialize AI clients safely (Both Gemini & Groq supported)
 let ai: GoogleGenAI | null = null;
 const isGroqActive = !!process.env.GROQ_API_KEY || (!!process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.startsWith('gsk_'));
@@ -248,6 +296,20 @@ app.get('/api/auth/me', authenticateToken, (req, res) => {
   res.json({ user: user.stats });
 });
 
+app.get('/api/debug-auth', (req, res) => {
+  res.json({
+    NODE_ENV: process.env.NODE_ENV,
+    APP_URL: process.env.APP_URL,
+    REDIRECT_URI: process.env.REDIRECT_URI,
+    GOOGLE_REDIRECT_URI: process.env.GOOGLE_REDIRECT_URI,
+    GOOGLE_CLIENT_ID_EXISTS: !!process.env.GOOGLE_CLIENT_ID,
+    GOOGLE_CLIENT_ID_VALUE: process.env.GOOGLE_CLIENT_ID,
+    req_host: req.get('host'),
+    req_protocol: req.protocol,
+    computed_google_redirect_uri: getOAuthRedirectUri(req, 'google')
+  });
+});
+
 app.post('/api/user/purchase', authenticateToken, (req, res) => {
   const userId = (req as any).user.id;
   const { itemTitle, price } = req.body;
@@ -325,207 +387,60 @@ app.post('/api/auth/reset-password', (req, res) => {
 // -----------------------------------------------------
 // GOOGLE & GITHUB OAUTH ENDPOINTS
 // -----------------------------------------------------
-const getOAuthRedirectUri = (req: express.Request, provider: 'google' | 'github') => {
-  if (provider === 'google' && process.env.GOOGLE_REDIRECT_URI) {
-    return process.env.GOOGLE_REDIRECT_URI;
+function getOAuthRedirectUri(req: express.Request, provider: 'google' | 'github') {
+  if (provider === 'google') {
+    return 'https://ais-dev-lxnzlmkouxifvnxlw6xgol-985867084507.asia-southeast1.run.app/api/auth/google/callback';
+  } else {
+    return 'https://ais-dev-lxnzlmkouxifvnxlw6xgol-985867084507.asia-southeast1.run.app/api/auth/github/callback';
   }
-  if (provider === 'github' && process.env.GITHUB_REDIRECT_URI) {
-    return process.env.GITHUB_REDIRECT_URI;
-  }
-  
-  if (process.env.APP_URL) {
-    const cleanAppUrl = process.env.APP_URL.replace(/\/$/, '');
-    return `${cleanAppUrl}/auth/callback/${provider}`;
-  }
-  if (process.env.REDIRECT_URI) {
-    return process.env.REDIRECT_URI;
-  }
-
-  const host = req.get('host') || '';
-  const isLocal = host.includes('localhost') || host.includes('127.0.0.1') || host.startsWith('3000-');
-  const protocol = isLocal ? 'http' : 'https';
-  return `${protocol}://${host}/auth/callback/${provider}`;
 };
 
-app.get('/api/auth/google/url', (req, res) => {
+app.get('/api/auth/google', (req, res) => {
   const clientId = process.env.GOOGLE_CLIENT_ID;
-  const redirectUri = (req.query.redirect_uri as string) || getOAuthRedirectUri(req, 'google');
-  
-  if (!clientId || clientId === 'MY_GOOGLE_CLIENT_ID') {
-    return res.json({ url: `/auth/callback/google?sandbox=true` });
+  if (!clientId || clientId === 'MY_GOOGLE_CLIENT_ID' || clientId.trim() === '') {
+    return res.status(400).send('Google Client ID is not configured. Please define GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in the settings.');
   }
+  const redirectUri = 'https://ais-dev-lxnzlmkouxifvnxlw6xgol-985867084507.asia-southeast1.run.app/api/auth/google/callback';
 
   const scope = encodeURIComponent('openid email profile');
   const responseType = 'code';
   const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=${responseType}&scope=${scope}&prompt=consent`;
-  res.json({ url });
+  res.redirect(url);
 });
 
-app.get('/api/auth/github/url', (req, res) => {
+app.get('/api/auth/github', (req, res) => {
   const clientId = process.env.GITHUB_CLIENT_ID;
-  const redirectUri = (req.query.redirect_uri as string) || getOAuthRedirectUri(req, 'github');
-
-  if (!clientId || clientId === 'MY_GITHUB_CLIENT_ID') {
-    return res.json({ url: `/auth/callback/github?sandbox=true` });
+  if (!clientId || clientId === 'MY_GITHUB_CLIENT_ID' || clientId.trim() === '') {
+    return res.status(400).send('GitHub Client ID is not configured. Please define GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET in the settings.');
   }
+  const redirectUri = 'https://ais-dev-lxnzlmkouxifvnxlw6xgol-985867084507.asia-southeast1.run.app/api/auth/github/callback';
 
   const scope = encodeURIComponent('user:email read:user');
   const url = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}`;
-  res.json({ url });
+  res.redirect(url);
 });
 
-app.get(['/auth/callback/google', '/auth/callback/google/'], async (req, res) => {
-  const isSandbox = req.query.sandbox === 'true' || !process.env.GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID === 'MY_GOOGLE_CLIENT_ID';
-  
-  if (isSandbox) {
-    // Render high-end UI explaining sandbox mode
-    return res.send(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <title>Google Sandbox Portal | TaskPilot AI</title>
-        <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
-        <style>
-          body {
-            background: #020203;
-            color: #f1f5f9;
-            font-family: 'Outfit', sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            text-align: center;
-            padding: 24px;
-          }
-          .card {
-            background: rgba(15, 23, 42, 0.6);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 28px;
-            padding: 40px;
-            max-width: 440px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
-            backdrop-filter: blur(20px);
-          }
-          .title {
-            font-size: 22px;
-            font-weight: 800;
-            margin-bottom: 12px;
-            background: linear-gradient(135deg, #a5b4fc, #818cf8);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-          }
-          .desc {
-            font-size: 14px;
-            color: #94a3b8;
-            line-height: 1.6;
-            margin-bottom: 24px;
-          }
-          .badge {
-            display: inline-block;
-            background: rgba(99, 102, 241, 0.15);
-            border: 1px solid rgba(99, 102, 241, 0.3);
-            color: #a5b4fc;
-            font-size: 11px;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            padding: 6px 12px;
-            border-radius: 100px;
-            margin-bottom: 16px;
-          }
-          .btn {
-            background: linear-gradient(135deg, #4f46e5, #8b5cf6);
-            border: none;
-            color: white;
-            padding: 14px 28px;
-            border-radius: 16px;
-            font-weight: 700;
-            font-size: 14px;
-            cursor: pointer;
-            box-shadow: 0 8px 16px rgba(99,102,241,0.2);
-            transition: all 0.2s;
-            width: 100%;
-            box-sizing: border-box;
-          }
-          .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 20px rgba(99,102,241,0.3);
-          }
-          .footer {
-            font-size: 11px;
-            color: #64748b;
-            margin-top: 24px;
-            border-top: 1px solid rgba(255,255,255,0.05);
-            padding-top: 16px;
-            text-align: left;
-            line-height: 1.5;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="card">
-          <span class="badge">Google Sandbox Gateway</span>
-          <div class="title">OAuth Dev Mode Activated</div>
-          <div class="desc">
-            You are running in the AI Studio preview environment. Since <b>GOOGLE_CLIENT_ID</b> is not configured, we've launched the sandbox tunnel safely.
-          </div>
-          <button class="btn" onclick="authorizeSandbox()">Launch Sandbox Terminal</button>
-          <div class="footer">
-            <b>Production OAuth Setup:</b><br/>
-            To configure real logins, go to Settings and add:<br/>
-            - <code>GOOGLE_CLIENT_ID</code><br/>
-            - <code>GOOGLE_CLIENT_SECRET</code>
-          </div>
-        </div>
-
-        <script>
-          function authorizeSandbox() {
-            // Generate mock but valid sandbox account
-            const mockUser = {
-              name: "Google Officer Alex",
-              email: "google.sandbox@lifesaver.ai",
-              avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&h=150&q=80",
-              level: 4,
-              xp: 450,
-              xpToNextLevel: 1000,
-              coins: 120,
-              title: "Command Deck Supervisor 🚀",
-              productivityScore: 88,
-              focusScore: 82,
-              moodScore: 90,
-              energyScore: 85
-            };
-            
-            // Post message back to main window
-            window.opener.postMessage({
-              type: 'OAUTH_AUTH_SUCCESS',
-              token: 'sandbox-google-security-token-jwt-1337',
-              user: mockUser
-            }, '*');
-            
-            window.close();
-          }
-        </script>
-      </body>
-      </html>
-    `);
-  }
-
-  // Real OAuth exchange flow
+async function handleGoogleCallback(req: express.Request, res: express.Response) {
+  let redirectUri = '';
   try {
     const code = req.query.code;
-    const redirectUri = getOAuthRedirectUri(req, 'google');
+    if (!code) {
+      throw new Error('Authorization code is missing from Google redirect callback.');
+    }
     
+    redirectUri = getOAuthRedirectUri(req, 'google');
+    
+    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+      throw new Error('Google client credentials are not configured.');
+    }
+
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
         code: code as string,
-        client_id: process.env.GOOGLE_CLIENT_ID || '',
-        client_secret: process.env.GOOGLE_CLIENT_SECRET || '',
+        client_id: process.env.GOOGLE_CLIENT_ID,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET,
         redirect_uri: redirectUri,
         grant_type: 'authorization_code'
       })
@@ -548,9 +463,21 @@ app.get(['/auth/callback/google', '/auth/callback/google/'], async (req, res) =>
       dbUser = dbInstance.createUser(
         userInfo.email, 
         'secure-random-google-oauth-pass-1337', 
-        userInfo.name || userInfo.email.split('@')[0]
+        userInfo.name || userInfo.given_name || 'Google User'
       );
     }
+    
+    // Dynamically sync and update name and avatar
+    const realName = userInfo.name || userInfo.given_name || 'Google User';
+    dbUser.name = realName;
+    dbUser.stats.name = realName;
+    dbUser.stats.email = userInfo.email;
+    if (userInfo.picture) {
+      dbUser.stats.avatar = userInfo.picture;
+    } else {
+      dbUser.stats.avatar = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150&q=80";
+    }
+    dbInstance.save();
     
     const token = generateToken({ id: dbUser.id, email: dbUser.email });
 
@@ -559,72 +486,33 @@ app.get(['/auth/callback/google', '/auth/callback/google/'], async (req, res) =>
       <html>
       <head>
         <meta charset="utf-8">
-        <title>Authenticating...</title>
-        <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
-        <style>
-          body {
-            background: #020203;
-            color: #f1f5f9;
-            font-family: 'Outfit', sans-serif;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-          }
-          .loader {
-            border: 3px solid rgba(255,255,255,0.05);
-            border-top: 3px solid #6366f1;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-          }
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        </style>
+        <title>Google Authentication Successful</title>
       </head>
       <body>
-        <div class="loader"></div>
         <script>
-          window.opener.postMessage({
-            type: 'OAUTH_AUTH_SUCCESS',
-            token: "${token}",
-            user: ${JSON.stringify(dbUser.stats)}
-          }, '*');
-          window.close();
+          if (window.opener) {
+            window.opener.postMessage({
+              type: 'OAUTH_AUTH_SUCCESS',
+              token: '${token}',
+              user: ${JSON.stringify(dbUser.stats)}
+            }, '*');
+            window.close();
+          } else {
+            window.location.href = '/';
+          }
         </script>
       </body>
       </html>
     `);
   } catch (err: any) {
-    res.status(500).send(`
-      <html>
-        <body style="background:#020203;color:#ef4444;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;text-align:center;">
-          <div>
-            <h3>OAuth Verification Error</h3>
-            <p style="color:#94a3b8;font-size:14px;">\${err.message || err}</p>
-            <button onclick="window.close()" style="background:#4f46e5;color:white;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;">Close Window</button>
-          </div>
-        </body>
-      </html>
-    `);
-  }
-});
-
-app.get(['/auth/callback/github', '/auth/callback/github/'], async (req, res) => {
-  const isSandbox = req.query.sandbox === 'true' || !process.env.GITHUB_CLIENT_ID || process.env.GITHUB_CLIENT_ID === 'MY_GITHUB_CLIENT_ID';
-
-  if (isSandbox) {
-    // Render high-end UI explaining sandbox mode
-    return res.send(`
+    console.error('Google OAuth error:', err);
+    const errorMessage = err.message || err.toString();
+    res.send(`
       <!DOCTYPE html>
       <html>
       <head>
         <meta charset="utf-8">
-        <title>GitHub Sandbox Portal | TaskPilot AI</title>
+        <title>Google Authentication Failed</title>
         <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
         <style>
           body {
@@ -642,20 +530,18 @@ app.get(['/auth/callback/github', '/auth/callback/github/'], async (req, res) =>
           }
           .card {
             background: rgba(15, 23, 42, 0.6);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 28px;
-            padding: 40px;
-            max-width: 440px;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 24px;
+            padding: 32px;
+            max-width: 400px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.5);
             backdrop-filter: blur(20px);
           }
           .title {
-            font-size: 22px;
+            font-size: 20px;
             font-weight: 800;
+            color: #ef4444;
             margin-bottom: 12px;
-            background: linear-gradient(135deg, #a5b4fc, #818cf8);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
           }
           .desc {
             font-size: 14px;
@@ -663,102 +549,68 @@ app.get(['/auth/callback/github', '/auth/callback/github/'], async (req, res) =>
             line-height: 1.6;
             margin-bottom: 24px;
           }
-          .badge {
-            display: inline-block;
-            background: rgba(99, 102, 241, 0.15);
-            border: 1px solid rgba(99, 102, 241, 0.3);
-            color: #a5b4fc;
-            font-size: 11px;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            padding: 6px 12px;
-            border-radius: 100px;
-            margin-bottom: 16px;
+          .err-box {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 12px;
+            font-family: monospace;
+            font-size: 12px;
+            color: #cbd5e1;
+            word-break: break-all;
+            margin-bottom: 20px;
+            text-align: left;
           }
           .btn {
-            background: linear-gradient(135deg, #1e293b, #0f172a);
-            border: 1px solid rgba(255,255,255,0.15);
+            background: linear-gradient(135deg, #ef4444, #b91c1c);
+            border: none;
             color: white;
-            padding: 14px 28px;
-            border-radius: 16px;
+            padding: 12px 24px;
+            border-radius: 12px;
             font-weight: 700;
-            font-size: 14px;
             cursor: pointer;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.3);
-            transition: all 0.2s;
             width: 100%;
-            box-sizing: border-box;
-          }
-          .btn:hover {
-            transform: translateY(-2px);
-            border-color: rgba(255,255,255,0.25);
-            box-shadow: 0 12px 20px rgba(0,0,0,0.4);
-          }
-          .footer {
-            font-size: 11px;
-            color: #64748b;
-            margin-top: 24px;
-            border-top: 1px solid rgba(255,255,255,0.05);
-            padding-top: 16px;
-            text-align: left;
-            line-height: 1.5;
           }
         </style>
       </head>
       <body>
         <div class="card">
-          <span class="badge" style="background:rgba(255,255,255,0.06);color:#f1f5f9;border-color:rgba(255,255,255,0.12)">GitHub Sandbox Gateway</span>
-          <div class="title">OAuth Dev Mode Activated</div>
-          <div class="desc">
-            You are running in the AI Studio preview environment. Since <b>GITHUB_CLIENT_ID</b> is not configured, we've launched the sandbox tunnel safely.
-          </div>
-          <button class="btn" onclick="authorizeSandbox()">Launch Sandbox Terminal</button>
-          <div class="footer">
-            <b>Production OAuth Setup:</b><br/>
-            To configure real logins, go to Settings and add:<br/>
-            - <code>GITHUB_CLIENT_ID</code><br/>
-            - <code>GITHUB_CLIENT_SECRET</code>
-          </div>
+          <div class="title">Google Authentication Failed</div>
+          <div class="desc">We couldn't complete the Google authentication process. Please check your configuration.</div>
+          <div class="err-box">${errorMessage}</div>
+          <button class="btn" onclick="window.opener ? window.close() : window.location.href = '/'">Close Window</button>
         </div>
-
         <script>
-          function authorizeSandbox() {
-            // Generate mock but valid sandbox account
-            const mockUser = {
-              name: "GitHub Octocat alex",
-              email: "github.sandbox@lifesaver.ai",
-              avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&h=150&q=80",
-              level: 3,
-              xp: 210,
-              xpToNextLevel: 1000,
-              coins: 85,
-              title: "Firewall Defender 🧭",
-              productivityScore: 82,
-              focusScore: 78,
-              moodScore: 85,
-              energyScore: 80
-            };
-            
-            // Post message back to main window
-            window.opener.postMessage({
-              type: 'OAUTH_AUTH_SUCCESS',
-              token: 'sandbox-github-security-token-jwt-1337',
-              user: mockUser
-            }, '*');
-            
+          if (window.opener) {
+            try {
+              window.opener.postMessage({
+                type: 'OAUTH_AUTH_ERROR',
+                error: "${errorMessage.replace(/"/g, '\\"').replace(/\n/g, ' ')}"
+              }, '*');
+            } catch (e) {}
             window.close();
+          } else {
+            window.location.href = '/?error=' + encodeURIComponent("${errorMessage.replace(/"/g, '\\"').replace(/\n/g, ' ')}");
           }
         </script>
       </body>
       </html>
     `);
   }
+};
 
-  // Real OAuth exchange flow
+async function handleGithubCallback(req: express.Request, res: express.Response) {
   try {
     const code = req.query.code;
+    if (!code) {
+      throw new Error('Authorization code is missing from GitHub redirect callback query parameters.');
+    }
+
     const redirectUri = getOAuthRedirectUri(req, 'github');
+
+    if (!process.env.GITHUB_CLIENT_ID || !process.env.GITHUB_CLIENT_SECRET || process.env.GITHUB_CLIENT_ID === 'MY_GITHUB_CLIENT_ID') {
+      throw new Error('GitHub Client ID or Client Secret is not configured in the application Environment Variables.');
+    }
 
     const tokenResponse = await fetch('https://github.com/login/oauth/access_token', {
       method: 'POST',
@@ -768,14 +620,14 @@ app.get(['/auth/callback/github', '/auth/callback/github/'], async (req, res) =>
       },
       body: JSON.stringify({
         code,
-        client_id: process.env.GITHUB_CLIENT_ID || '',
-        client_secret: process.env.GITHUB_CLIENT_SECRET || '',
+        client_id: process.env.GITHUB_CLIENT_ID,
+        client_secret: process.env.GITHUB_CLIENT_SECRET,
         redirect_uri: redirectUri
       })
     }).then(r => r.json());
 
     if (!tokenResponse.access_token) {
-      throw new Error(tokenResponse.error_description || tokenResponse.error || 'No access token received.');
+      throw new Error(tokenResponse.error_description || tokenResponse.error || 'No access token received from GitHub.');
     }
 
     const userInfo = await fetch('https://api.github.com/user', {
@@ -784,6 +636,10 @@ app.get(['/auth/callback/github', '/auth/callback/github/'], async (req, res) =>
         'User-Agent': 'TaskPilot-OAuth'
       }
     }).then(r => r.json());
+
+    if (!userInfo || !userInfo.login) {
+      throw new Error('Failed to fetch user profile information from GitHub API.');
+    }
 
     let email = userInfo.email;
     if (!email) {
@@ -807,6 +663,17 @@ app.get(['/auth/callback/github', '/auth/callback/github/'], async (req, res) =>
       );
     }
     
+    // Dynamically update name and avatar from real GitHub Profile Info
+    if (userInfo.name || userInfo.login) {
+      const gitHubName = userInfo.name || userInfo.login;
+      dbUser.name = gitHubName;
+      dbUser.stats.name = gitHubName;
+    }
+    if (userInfo.avatar_url) {
+      dbUser.stats.avatar = userInfo.avatar_url;
+    }
+    dbInstance.save();
+    
     const token = generateToken({ id: dbUser.id, email: dbUser.email });
 
     res.send(`
@@ -814,7 +681,33 @@ app.get(['/auth/callback/github', '/auth/callback/github/'], async (req, res) =>
       <html>
       <head>
         <meta charset="utf-8">
-        <title>Authenticating...</title>
+        <title>GitHub Authentication Successful</title>
+      </head>
+      <body>
+        <script>
+          if (window.opener) {
+            window.opener.postMessage({
+              type: 'OAUTH_AUTH_SUCCESS',
+              token: '${token}',
+              user: ${JSON.stringify(dbUser.stats)}
+            }, '*');
+            window.close();
+          } else {
+            window.location.href = '/';
+          }
+        </script>
+      </body>
+      </html>
+    `);
+  } catch (err: any) {
+    console.error('GitHub OAuth error:', err);
+    const errorMessage = err.message || err.toString();
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>GitHub Authentication Failed</title>
         <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
         <style>
           body {
@@ -822,52 +715,84 @@ app.get(['/auth/callback/github', '/auth/callback/github/'], async (req, res) =>
             color: #f1f5f9;
             font-family: 'Outfit', sans-serif;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             height: 100vh;
             margin: 0;
+            text-align: center;
+            padding: 24px;
           }
-          .loader {
-            border: 3px solid rgba(255,255,255,0.05);
-            border-top: 3px solid #1e293b;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
+          .card {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 24px;
+            padding: 32px;
+            max-width: 400px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+            backdrop-filter: blur(20px);
           }
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+          .title {
+            font-size: 20px;
+            font-weight: 800;
+            color: #ef4444;
+            margin-bottom: 12px;
+          }
+          .desc {
+            font-size: 14px;
+            color: #94a3b8;
+            line-height: 1.6;
+            margin-bottom: 24px;
+          }
+          .err-box {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 12px;
+            font-family: monospace;
+            font-size: 12px;
+            color: #cbd5e1;
+            word-break: break-all;
+            margin-bottom: 20px;
+            text-align: left;
+          }
+          .btn {
+            background: linear-gradient(135deg, #ef4444, #b91c1c);
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            width: 100%;
           }
         </style>
       </head>
       <body>
-        <div class="loader"></div>
+        <div class="card">
+          <div class="title">GitHub Authentication Failed</div>
+          <div class="desc">We couldn't complete the GitHub authentication process. Please check your configuration.</div>
+          <div class="err-box">${errorMessage}</div>
+          <button class="btn" onclick="window.opener ? window.close() : window.location.href = '/'">Close Window</button>
+        </div>
         <script>
-          window.opener.postMessage({
-            type: 'OAUTH_AUTH_SUCCESS',
-            token: "${token}",
-            user: ${JSON.stringify(dbUser.stats)}
-          }, '*');
-          window.close();
+          if (window.opener) {
+            try {
+              window.opener.postMessage({
+                type: 'OAUTH_AUTH_ERROR',
+                error: "${errorMessage.replace(/"/g, '\\"').replace(/\n/g, ' ')}"
+              }, '*');
+            } catch (e) {}
+            window.close();
+          } else {
+            window.location.href = '/?error=' + encodeURIComponent("${errorMessage.replace(/"/g, '\\"').replace(/\n/g, ' ')}");
+          }
         </script>
       </body>
       </html>
     `);
-  } catch (err: any) {
-    res.status(500).send(`
-      <html>
-        <body style="background:#020203;color:#ef4444;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;text-align:center;">
-          <div>
-            <h3>OAuth Verification Error</h3>
-            <p style="color:#94a3b8;font-size:14px;">\${err.message || err}</p>
-            <button onclick="window.close()" style="background:#4f46e5;color:white;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;">Close Window</button>
-          </div>
-        </body>
-      </html>
-    `);
   }
-});
+};
 
 // -----------------------------------------------------
 // TASKS API
@@ -1596,7 +1521,13 @@ async function startServer() {
   if (process.env.NODE_ENV !== 'production') {
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: { 
+        middlewareMode: true,
+        hmr: process.env.DISABLE_HMR === 'true' ? false : {
+          protocol: 'wss',
+          clientPort: 443,
+        }
+      },
       appType: 'spa',
     });
     app.use(vite.middlewares);

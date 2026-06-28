@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Lock, Mail, Eye, EyeOff, KeyRound, 
-  ArrowLeft, Github, Chrome, Compass, CheckCircle2, ShieldAlert, Sparkles 
+  ArrowLeft, Github, Chrome, Compass, CheckCircle2, ShieldAlert, Sparkles
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
@@ -22,6 +22,17 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack, onSuccess }) => {
   const [otpCode, setOtpCode] = useState<string[]>(['', '', '', '']);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
+  const [activeProvider, setActiveProvider] = useState<'google' | 'github' | null>(null);
+
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const err = params.get('error');
+    if (err) {
+      setError(err);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
+
 
   const calculatePasswordStrength = (pass: string) => {
     if (!pass) return 0;
@@ -130,59 +141,76 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack, onSuccess }) => {
     }
   };
 
+  React.useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      const origin = event.origin;
+      if (
+        origin !== window.location.origin &&
+        !origin.endsWith('.run.app') && 
+        !origin.includes('localhost') && 
+        !origin.includes('127.0.0.1')
+      ) {
+        return;
+      }
+      if (event.data) {
+        if (event.data.type === 'OAUTH_AUTH_SUCCESS') {
+          const { token, user: oAuthUser } = event.data;
+          authSuccess(token, oAuthUser);
+          setIsLoading(false);
+          setActiveProvider(null);
+          if (onSuccess) onSuccess();
+        } else if (event.data.type === 'OAUTH_AUTH_ERROR') {
+          setError(event.data.error || 'Authentication failed.');
+          setIsLoading(false);
+          setActiveProvider(null);
+        }
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [authSuccess, onSuccess]);
+
   const handleOAuthLogin = async (provider: 'google' | 'github') => {
     setIsLoading(true);
+    setActiveProvider(provider);
     setError('');
 
     try {
-      // 1. Fetch authorization URL from server
-      const res = await fetch(`/api/auth/${provider}/url`);
-      if (!res.ok) throw new Error('Failed to retrieve authentication channel.');
-      const data = await res.json();
-
-      // 2. Compute popup position to center it
       const width = 500;
-      const height = 650;
+      const height = 600;
       const left = window.screenX + (window.outerWidth - width) / 2;
       const top = window.screenY + (window.outerHeight - height) / 2;
-
-      // 3. Open OAuth popup
+      
+      const redirectUri = window.location.origin + "/api/auth/" + provider + "/callback";
       const popup = window.open(
-        data.url, 
-        `taskpilot-${provider}-oauth`, 
+        `${window.location.origin}/api/auth/${provider}?redirect_uri=${encodeURIComponent(redirectUri)}`,
+        '_blank',
         `width=${width},height=${height},left=${left},top=${top},status=no,resizable=yes`
       );
 
       if (!popup) {
         setIsLoading(false);
+        setActiveProvider(null);
         setError('Popup blocker active. Please permit popups to authorize.');
         return;
       }
 
-      // 4. Register listener for postMessage
-      const messageListener = (event: MessageEvent) => {
-        if (event.data && event.data.type === 'OAUTH_AUTH_SUCCESS') {
-          const { token, user: oAuthUser } = event.data;
-          authSuccess(token, oAuthUser);
-          setIsLoading(false);
-          window.removeEventListener('message', messageListener);
-          if (onSuccess) onSuccess();
-        }
-      };
-
-      window.addEventListener('message', messageListener);
-
-      // 5. Watch for popup closure to stop loading state if they close it
       const checkPopupClosed = setInterval(() => {
         if (popup.closed) {
           clearInterval(checkPopupClosed);
-          setIsLoading(false);
+          setIsLoading((prev) => {
+            if (prev) {
+              setActiveProvider(null);
+            }
+            return false;
+          });
         }
       }, 1000);
 
     } catch (err: any) {
       setIsLoading(false);
-      setError(err.message || 'OAuth initialization failed.');
+      setActiveProvider(null);
+      setError(err.message || 'OAuth authentication failed.');
     }
   };
 
@@ -378,20 +406,32 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack, onSuccess }) => {
           <button 
             type="button" 
             onClick={() => handleOAuthLogin('google')}
-            className="flex items-center justify-center gap-2 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 transition-all cursor-pointer"
+            disabled={isLoading}
+            className={`flex items-center justify-center gap-2 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 transition-all cursor-pointer ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
-            <Chrome className="w-4.5 h-4.5 text-red-500" />
+            {isLoading && activeProvider === 'google' ? (
+              <span className="w-4.5 h-4.5 border-2 border-slate-600 dark:border-slate-300 border-t-transparent rounded-full animate-spin"></span>
+            ) : (
+              <Chrome className="w-4.5 h-4.5 text-red-500" />
+            )}
             <span>Google</span>
           </button>
           <button 
             type="button" 
             onClick={() => handleOAuthLogin('github')}
-            className="flex items-center justify-center gap-2 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 transition-all cursor-pointer"
+            disabled={isLoading}
+            className={`flex items-center justify-center gap-2 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 transition-all cursor-pointer ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
-            <Github className="w-4.5 h-4.5 text-slate-900 dark:text-white" />
+            {isLoading && activeProvider === 'github' ? (
+              <span className="w-4.5 h-4.5 border-2 border-slate-600 dark:border-slate-300 border-t-transparent rounded-full animate-spin"></span>
+            ) : (
+              <Github className="w-4.5 h-4.5 text-slate-900 dark:text-white" />
+            )}
             <span>GitHub</span>
           </button>
         </div>
+
+
 
         {/* Direct Sandbox Bypass Button */}
         <div className="mt-6 pt-5 border-t border-slate-100 dark:border-slate-800">

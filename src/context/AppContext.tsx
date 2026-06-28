@@ -220,13 +220,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (!token) return;
 
       const headers = getHeaders();
+      
+      const safeFetch = async (url: string) => {
+        try {
+          const r = await fetch(url, { headers });
+          if (!r.ok) {
+            console.warn(`Fetch to ${url} failed with status: ${r.status}`);
+            return null;
+          }
+          const contentType = r.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            return await r.json();
+          }
+          const text = await r.text();
+          console.warn(`Fetch to ${url} returned non-JSON format (starting with):`, text.substring(0, 100));
+          return null;
+        } catch (e) {
+          console.error(`Fetch error for ${url}:`, e);
+          return null;
+        }
+      };
+
       const [tasksRes, habitsRes, eventsRes, milestonesRes, notifRes, meRes] = await Promise.all([
-        fetch('/api/tasks', { headers }).then(r => r.json()),
-        fetch('/api/habits', { headers }).then(r => r.json()),
-        fetch('/api/calendar', { headers }).then(r => r.json()),
-        fetch('/api/goals', { headers }).then(r => r.json()),
-        fetch('/api/notifications', { headers }).then(r => r.json()),
-        fetch('/api/auth/me', { headers }).then(r => r.json())
+        safeFetch('/api/tasks'),
+        safeFetch('/api/habits'),
+        safeFetch('/api/calendar'),
+        safeFetch('/api/goals'),
+        safeFetch('/api/notifications'),
+        safeFetch('/api/auth/me')
       ]);
 
       if (Array.isArray(tasksRes)) setTasks(tasksRes);

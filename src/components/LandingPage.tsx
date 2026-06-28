@@ -15,6 +15,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin 
   const [newsletterEmail, setNewsletterEmail] = useState<string>('');
   const [newsletterStatus, setNewsletterStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [newsletterMsg, setNewsletterMsg] = useState<string>('');
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
 
   const handleNewsletterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,7 +97,44 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin 
         <div className="hidden md:flex items-center gap-8 font-medium text-slate-600 dark:text-slate-300 text-sm">
           <a href="#features" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Features</a>
           <a href="#timeline" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">How it works</a>
-          <a href="#testimonials" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Success Stories</a>
+          <div className="relative">
+            <button 
+              onClick={() => setShowMoreMenu(!showMoreMenu)}
+              onMouseEnter={() => setShowMoreMenu(true)}
+              className="flex items-center gap-1.5 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer focus:outline-none"
+            >
+              <span>More</span>
+              <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${showMoreMenu ? 'rotate-180' : ''}`} />
+            </button>
+            {showMoreMenu && (
+              <div 
+                onMouseLeave={() => setShowMoreMenu(false)}
+                className="absolute left-0 mt-2 w-48 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2 shadow-xl z-50 flex flex-col gap-1"
+              >
+                <a 
+                  href="#faq-section" 
+                  onClick={() => setShowMoreMenu(false)}
+                  className="px-3.5 py-2 text-xs font-semibold rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-700 dark:text-slate-300 transition-all text-left"
+                >
+                  FAQs
+                </a>
+                <a 
+                  href="#newsletter" 
+                  onClick={() => setShowMoreMenu(false)}
+                  className="px-3.5 py-2 text-xs font-semibold rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-700 dark:text-slate-300 transition-all text-left"
+                >
+                  Newsletter
+                </a>
+                <a 
+                  href="#features" 
+                  onClick={() => setShowMoreMenu(false)}
+                  className="px-3.5 py-2 text-xs font-semibold rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-700 dark:text-slate-300 transition-all text-left"
+                >
+                  Workspace Features
+                </a>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center gap-4">
@@ -354,7 +392,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin 
 
 
       {/* Accordion FAQ Section */}
-      <section className="py-20 px-6 md:px-12 bg-slate-100/40 dark:bg-slate-950/20 border-t border-slate-200 dark:border-slate-900">
+      <section id="faq-section" className="py-20 px-6 md:px-12 bg-slate-100/40 dark:bg-slate-950/20 border-t border-slate-200 dark:border-slate-900">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
             <HelpCircle className="w-10 h-10 text-indigo-500 mx-auto mb-4" />
@@ -386,7 +424,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin 
       </section>
 
       {/* Contact & Footer */}
-      <footer className="bg-slate-900 text-slate-400 py-16 px-6 md:px-12 border-t border-slate-800">
+      <footer id="newsletter" className="bg-slate-900 text-slate-400 py-16 px-6 md:px-12 border-t border-slate-800">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-10">
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-2">
