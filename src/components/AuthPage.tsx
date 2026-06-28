@@ -148,7 +148,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack, onSuccess }) => {
         origin !== window.location.origin &&
         !origin.endsWith('.run.app') && 
         !origin.includes('localhost') && 
-        !origin.includes('127.0.0.1')
+        !origin.includes('127.0.0.1') &&
+        !origin.includes('taskpilot-ai')
       ) {
         return;
       }

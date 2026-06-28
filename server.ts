@@ -389,9 +389,9 @@ app.post('/api/auth/reset-password', (req, res) => {
 // -----------------------------------------------------
 function getOAuthRedirectUri(req: express.Request, provider: 'google' | 'github') {
   if (provider === 'google') {
-    return 'https://ais-dev-lxnzlmkouxifvnxlw6xgol-985867084507.asia-southeast1.run.app/api/auth/google/callback';
+    return 'https://taskpilot-ai-972094479232.asia-southeast1.run.app/api/auth/google/callback';
   } else {
-    return 'https://ais-dev-lxnzlmkouxifvnxlw6xgol-985867084507.asia-southeast1.run.app/api/auth/github/callback';
+    return 'https://taskpilot-ai-972094479232.asia-southeast1.run.app/api/auth/github/callback';
   }
 };
 
@@ -400,7 +400,7 @@ app.get('/api/auth/google', (req, res) => {
   if (!clientId || clientId === 'MY_GOOGLE_CLIENT_ID' || clientId.trim() === '') {
     return res.status(400).send('Google Client ID is not configured. Please define GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in the settings.');
   }
-  const redirectUri = 'https://ais-dev-lxnzlmkouxifvnxlw6xgol-985867084507.asia-southeast1.run.app/api/auth/google/callback';
+  const redirectUri = getOAuthRedirectUri(req, 'google');
 
   const scope = encodeURIComponent('openid email profile');
   const responseType = 'code';
@@ -413,7 +413,7 @@ app.get('/api/auth/github', (req, res) => {
   if (!clientId || clientId === 'MY_GITHUB_CLIENT_ID' || clientId.trim() === '') {
     return res.status(400).send('GitHub Client ID is not configured. Please define GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET in the settings.');
   }
-  const redirectUri = 'https://ais-dev-lxnzlmkouxifvnxlw6xgol-985867084507.asia-southeast1.run.app/api/auth/github/callback';
+  const redirectUri = getOAuthRedirectUri(req, 'github');
 
   const scope = encodeURIComponent('user:email read:user');
   const url = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}`;
